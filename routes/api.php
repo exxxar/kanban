@@ -1,0 +1,94 @@
+<?php
+
+use App\Http\Controllers\ApiController;
+use App\Http\Controllers\BoardController;
+use App\Http\Controllers\ColumnController;
+use App\Http\Controllers\KanbanController;
+use App\Http\Controllers\PushController;
+use App\Http\Controllers\TagController;
+use App\Http\Controllers\TaskAttachmentController;
+use App\Http\Controllers\TaskCommentController;
+use App\Http\Controllers\TaskController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+Route::prefix('boards')->group(function () {
+    // Получить доску по UUID
+    Route::get('{uuid}', [KanbanController::class, 'getBoard']);
+    // Обновить доску
+    Route::put('{uuid}', [BoardController::class, 'update']);
+    // Создать доску
+    Route::post('/', [KanbanController::class, 'createBoard']);
+    // Экспорт доски
+    Route::get('{board}/export', [BoardController::class, 'export']);
+    // Теги доски
+    Route::get('{uuid}/tags', [TagController::class, 'index']);
+    Route::post('{uuid}/tags', [TagController::class, 'store']);
+    // Колонки доски
+    Route::post('{uuid}/columns', [KanbanController::class, 'storeColumn']);
+    // Задачи доски
+    Route::post('{uuid}/tasks', [KanbanController::class, 'storeTask']);
+    // Переупорядочивание колонок
+    Route::put('{uuid}/columns/reorder', [ColumnController::class, 'reorder']);
+});
+
+
+Route::prefix('columns')->group(function () {
+    // Обновить колонку
+    Route::put('{column}', [KanbanController::class, 'updateColumn']);
+    // Удалить колонку
+    Route::delete('{column}', [KanbanController::class, 'deleteColumn']);
+    // Переименовать колонку
+    Route::put('{column}', [KanbanController::class, 'renameColumn']);
+    // Получить задачи колонки (пагинация)
+    Route::get('{column}/tasks', [TaskController::class, 'paginated']);
+    // Переупорядочивание задач в колонке
+    Route::put('{column}/tasks/reorder', [TaskController::class, 'reorder']);
+});
+
+Route::prefix('tasks')->group(function () {
+    // Обновить задачу
+    Route::put('{task}', [KanbanController::class, 'updateTask']);
+    // Удалить задачу
+    Route::delete('{task}', [KanbanController::class, 'deleteTask']);
+    // Перемещение задачи
+    Route::post('move', [KanbanController::class, 'moveTask']);
+    // Дублирование задачи
+    Route::post('{task}/duplicate', [KanbanController::class, 'duplicate']);
+    // Отметить задачу как просмотренную
+    Route::post('{task}/view', [TaskController::class, 'markViewed']);
+});
+
+Route::prefix('tags')->group(function () {
+    Route::delete('{tag}', [TagController::class, 'destroy']);
+});
+
+Route::prefix('push')->group(function () {
+    Route::post('subscribe', [PushController::class, 'subscribe']);
+    Route::get('test', [PushController::class, 'sendTest']);
+});
+
+Route::prefix('task')->group(function () {
+    // Создание задачи через внешний API
+    Route::post('create', [ApiController::class, 'handler']);
+    // --- Комментарии ---
+    Route::get('{task}/comments', [TaskCommentController::class, 'index']);
+    Route::post('{task}/comment', [TaskCommentController::class, 'store']);
+    // --- Вложения ---
+    Route::get('{task}/attachments', [TaskAttachmentController::class, 'index']);
+    Route::post('{task}/attachments', [TaskAttachmentController::class, 'store']);
+});

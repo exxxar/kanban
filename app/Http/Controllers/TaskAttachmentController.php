@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Task;
+use Illuminate\Http\Request;
+
+class TaskAttachmentController extends Controller
+{
+    public function index(Task $task)
+    {
+        return $task->attachments ?? [];
+    }
+
+    public function store(Request $request, Task $task)
+    {
+        $request->validate([
+            'files.*' => 'required|file|max:20480',
+        ]);
+
+        $existing = $task->attachments ?? [];
+        $newFiles = [];
+
+        foreach ($request->file('files') as $file) {
+            $path = $file->store("tasks/{$task->id}/attachments", 'public');
+
+            $newFiles[] = [
+                'name' => $file->getClientOriginalName(),
+                'path' => $path,
+                'mime' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ];
+        }
+
+        $task->attachments = array_merge($existing, $newFiles);
+        $task->save();
+
+        return response()->json($task->attachments);
+    }
+}
