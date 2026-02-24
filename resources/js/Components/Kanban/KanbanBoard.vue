@@ -7,7 +7,7 @@
                     class="h3 m-0"
                     @dblclick="startEditingBoardTitle"
                 >
-                    <i class="fas fa-tasks"></i> {{ initialBoard.title }}
+                    <i class="fas fa-tasks"></i> {{ store.board?.title || initialBoard.title }}
                 </h2>
 
                 <!-- Редактирование -->
