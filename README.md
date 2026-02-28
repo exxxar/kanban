@@ -69,6 +69,8 @@
 ## 📡 Основные маршруты API
 
 ### Boards
+
+```
 GET    /api/boards/{uuid}
 PUT    /api/boards/{uuid}
 POST   /api/boards
@@ -78,54 +80,68 @@ POST   /api/boards/{uuid}/tags
 POST   /api/boards/{uuid}/columns
 POST   /api/boards/{uuid}/tasks
 PUT    /api/boards/{uuid}/columns/reorder
+```
 
 ### Columns
+```
 PUT    /api/columns/{column}
 DELETE /api/columns/{column}
 GET    /api/columns/{column}/tasks
 PUT    /api/columns/{column}/tasks/reorder
+```
 
 ### Tasks
+```
 PUT    /api/tasks/{task}
 DELETE /api/tasks/{task}
 POST   /api/tasks/move
 POST   /api/tasks/{task}/duplicate
 POST   /api/tasks/{task}/view
+```
 
 ### Comments
+```
 GET    /api/task/{task}/comments
 POST   /api/task/{task}/comment
-
+```
 ### Attachments
+```
 GET    /api/task/{task}/attachments
 POST   /api/task/{task}/attachments
-
+```
 ### External API
+```
 POST   /api/task/create
-
+```
 ### Push
+```
 POST   /api/task/create
-
+```
 ---
 
 ## 🛠 Установка и запуск
 
 ### 1. Установка зависимостей
+```bash
 composer install
 npm install
+```
 
 ### 2. Настройка окружения
 Создать `.env`:
+```bash
 cp .env.example .env
 php artisan key:generate
-
+```
 ### 3. Миграции и сиды
+```bash
 php artisan migrate
 php artisan db:seed
-
+```
 ### 4. Запуск сервера
+```bash
 php artisan serve
-
+```
 ---
 
 ## 🧩 Frontend
