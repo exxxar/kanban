@@ -3,14 +3,18 @@
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ColumnController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\KanbanController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
+use App\Models\ApiToken;
+use App\Models\Board;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +32,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::prefix('boards')->group(function () {
     // Получить доску по UUID
+
+    Route::get('/choose-template', [HomeController::class, 'chooseTemplate']);
+
     Route::get('{uuid}', [KanbanController::class, 'getBoard']);
     // Обновить доску
     Route::put('{uuid}', [BoardController::class, 'update']);
@@ -44,6 +51,9 @@ Route::prefix('boards')->group(function () {
     Route::post('{uuid}/tasks', [KanbanController::class, 'storeTask']);
     // Переупорядочивание колонок
     Route::put('{uuid}/columns/reorder', [ColumnController::class, 'reorder']);
+
+    Route::post('/{uuid}/apply-template', [HomeController::class, 'applyTemplate']);
+
 });
 
 
@@ -82,7 +92,47 @@ Route::prefix('push')->group(function () {
     Route::get('test', [PushController::class, 'sendTest']);
 });
 
-Route::prefix('task')->group(function () {
+Route::post("/token", function (Request $request){
+    $request->validate([
+        "uuid"=>"required"
+    ]);
+
+    $uuid = $request->uuid;
+
+    $board = Board::where('uuid', $uuid)->firstOrFail();
+
+    $token = 'kb_' . Str::random(40);
+
+    $tokens = ApiToken::query()
+        ->where( 'board_id', $board->id)
+        ->orderBy("created_at", "asc")
+        ->get();
+
+/*    $limit = env("APP_TOKENS_LIMIT", 10);
+
+    if (count($tokens)>=$limit)
+    {
+        $tokens[0]->delete();
+    }*/
+
+    ApiToken::create([
+        'board_id' => $board->id,
+        'token' => hash('sha256', $token),
+        'abilities' => json_encode([
+            'tasks.read',
+            'tasks.write',
+            'comments.write'
+        ])
+    ]);
+
+    return [
+        "token"=>$token
+    ];
+});
+
+Route::prefix('task')
+    ->middleware(["api.auth"])
+    ->group(function () {
     // Создание задачи через внешний API
     Route::post('create', [ApiController::class, 'handler']);
     // --- Комментарии ---

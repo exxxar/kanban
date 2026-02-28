@@ -2,9 +2,13 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\HomeController;
+use App\Models\ApiToken;
+use App\Models\Board;
 use App\Services\TaskApiTester;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 /*
@@ -24,27 +28,7 @@ use App\Http\Controllers\BoardController;
 Route::get('/board/{uuid}', [BoardController::class, 'show'])
     ->name('board.show');
 
-Route::get("/test", function (){
-    $type = "base";
-    $count = 5;
 
-    $tester = new TaskApiTester();
-
-    for ($i = 1; $i <= $count; $i++) {
-
-        $result = match ($type) {
-            'base' => $tester->createBase(),
-            'user' => $tester->createUser(),
-            'order' => $tester->createOrder(),
-            'text' => $tester->createText(),
-            'finance' => $tester->createFinance(),
-            'all' => $tester->createAll(),
-            default => ""
-        };
-
-        dd($result);
-    }
-});
 
 
 Route::get('/', [HomeController::class, 'index']);

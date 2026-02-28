@@ -1,8 +1,62 @@
 <template>
     <div class="refresh-progress" :style="{ width: progress + '%' }"></div>
 
-    <KanbanBoard :initial-board="board"/>
+    <div class="d-flex flex-column min-vh-100">
+        <main class="flex-grow-1">
+            <KanbanBoard :initial-board="board"/>
+        </main>
 
+        <!-- Footer -->
+        <footer class="text-light py-4 mt-auto">
+            <div class="container text-center">
+
+                <h2 class="kanbancrm-logo mb-3">
+                    <i class="fa-solid fa-layer-group me-2"></i>
+                    KanbanCRM
+                </h2>
+
+                <p class="mb-1">© 2026 KanbanCRM. Все права защищены.</p>
+                <p class="small text-white">Сделано с <i class="fa-solid fa-heart text-danger"></i> в мире АйТи</p>
+
+            </div>
+        </footer>
+
+    </div>
+
+
+
+
+    <!-- Модалка выбора шаблона -->
+    <div class="modal fade" id="templateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+
+                <div class="modal-body">
+
+                    <div class="template-list">
+                        <div
+                            v-for="tpl in templateStore.templates"
+                            :key="tpl.id"
+                            class="template-card"
+                            @click="selectTemplate(tpl.id)"
+                        >
+                            <i :class="['fa', tpl.icon, 'template-icon']"></i>
+                            <div class="template-title">{{ tpl.title }}</div>
+                        </div>
+                    </div>
+
+                    <div v-if="templateStore.loading" class="loading">
+                        Создаём доску...
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Твоя PWA-модалка -->
     <div class="modal fade" id="installPwaModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -25,12 +79,12 @@
         </div>
     </div>
 
-
 </template>
 
 <script>
 import KanbanBoard from '@/Components/Kanban/KanbanBoard.vue'
 import {useKanbanStore} from "@/stores/useKanbanStore.js";
+import {useBoardTemplateStore} from "@/stores/useBoardTemplateStore.js";
 
 export default {
     props: {
@@ -41,15 +95,22 @@ export default {
     data() {
         return {
             store: useKanbanStore(),
+            templateStore: useBoardTemplateStore(),
             progress: 0
         }
     },
 
+    async mounted() {
 
+        // Если колонок нет → показываем модалку выбора шаблона
+        if (!this.board.columns || this.board.columns.length === 0) {
+            await this.templateStore.loadTemplates()
 
-    mounted() {
-
-
+            const modal = new bootstrap.Modal(document.getElementById('templateModal'), {
+                backdrop: 'static', keyboard: false
+            })
+            modal.show()
+        }
 
         this.initPush()
 
@@ -58,55 +119,61 @@ export default {
 
         this.progress = 0
 
-        // обновляем прогресс каждые 100 мс
         progressTimer = setInterval(() => {
-            this.progress += 100 / 600 // 600 шагов по 100мс = 60 сек
+            this.progress += 100 / 600
             if (this.progress >= 100) {
                 this.progress = 100
             }
         }, 100)
 
-        // обновление доски раз в минуту
         refreshTimer = setInterval(async () => {
             await this.store.loadBoard(this.board.uuid)
             this.progress = 0
         }, 60000)
 
     },
+
     methods: {
-        installPWA(){
+        async selectTemplate(templateId) {
+            await this.templateStore.applyTemplate(this.board.uuid, templateId)
+
+            // Закрываем модалку
+            const modal = bootstrap.Modal.getInstance(document.getElementById('templateModal'))
+            modal.hide()
+
+            // Обновляем доску
+            await this.store.loadBoard(this.board.uuid)
+        },
+
+        installPWA() {
             window.installPWA()
         },
+
         async initPush() {
-            // Проверяем поддержку
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 console.warn('Push notifications not supported')
                 return
             }
 
-            // Регистрируем SW
             const registration = await navigator.serviceWorker.register('/sw.js')
 
-            // Спрашиваем разрешение
             const permission = await Notification.requestPermission()
             if (permission !== 'granted') {
                 console.warn('User denied notifications')
                 return
             }
 
-            // Подписываемся
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: this.vapidPublicKey
             })
 
-            // Отправляем на сервер
             await axios.post('/api/push/subscribe', subscription)
         }
     }
-
 }
 </script>
+
 <style>
 .refresh-progress {
     position: fixed;
@@ -117,5 +184,62 @@ export default {
     transition: width 0.1s linear;
     z-index: 9999;
 }
+
+.template-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+}
+
+.template-card {
+    width: 180px;
+    padding: 20px;
+    border-radius: 12px;
+    background: #f7f7f7;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid #ddd;
+}
+
+.template-card:hover {
+    background: #eaeaea;
+    transform: translateY(-3px);
+}
+
+.template-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.template-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.loading {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.kanbancrm-logo {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-size: 42px;
+
+    /* градиент по тексту */
+    background: linear-gradient(90deg, #6a11cb 0%, #b993ff 50%, #e0c3fc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+
+    /* лёгкий tech‑вайб */
+    text-transform: none;
+    text-shadow: 0 0 12px rgba(186, 104, 255, 0.35);
+}
+
 
 </style>

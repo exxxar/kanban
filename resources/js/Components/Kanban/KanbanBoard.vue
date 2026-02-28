@@ -30,6 +30,12 @@
                     <i class="fas fa-link"></i>
                 </button>
 
+
+                <button class="btn btn-primary d-flex align-items-center gap-2" @click="openTokenModal"><i
+                    class="fa-solid fa-key"></i>
+                </button>
+
+
                 <button class="btn btn-secondary" @click="exportData">
                     <i class="fas fa-file-export"></i>
                 </button>
@@ -95,6 +101,9 @@
             @accept="clearBoard"
             @reject="showDeleteModal = false"
         />
+
+        <TokenModal
+            v-if="showTokenModal" @close="showTokenModal = false"/>
     </div>
 </template>
 <script>
@@ -103,13 +112,15 @@ import KanbanColumn from './KanbanColumn.vue'
 import TaskModal from './TaskModal.vue'
 import ColumnModal from './ColumnModal.vue'
 import ConfirmModal from "@/Components/Kanban/ConfirmModal.vue";
+import TokenModal from '@/Components/Kanban/TokenModal.vue'
 
 export default {
-    components: {KanbanColumn, TaskModal, ColumnModal, ConfirmModal},
+    components: {KanbanColumn, TaskModal, ColumnModal, ConfirmModal, TokenModal},
     props: {initialBoard: Object},
 
     data() {
         return {
+            showTokenModal: false,
             showDeleteModal: false,
             showTaskModal: false,
             showColumnModal: false,
@@ -135,6 +146,9 @@ export default {
     },
 
     methods: {
+        openTokenModal() {
+            this.showTokenModal = true
+        },
         exportData() {
             window.open(`/api/boards/${this.initialBoard.id}/export`, '_blank')
         },

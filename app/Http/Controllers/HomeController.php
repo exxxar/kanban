@@ -12,48 +12,69 @@ class HomeController extends Controller
     {
         // Если доска уже есть — отправляем туда
         if ($request->session()->has('board_uuid')) {
-            return redirect('/board/' . $request->session()->get('board_uuid'));
+            $uuid = $request->session()->get('board_uuid');
+            $board = Board::query()
+                ->where("uuid", $uuid)
+                ->first();
+
+            if (!is_null($board))
+                return redirect('/board/' . $uuid);
         }
 
-        // Создаём новую доску
+        // Создаём пустую доску
         $board = Board::create([
             'uuid' => Str::uuid(),
-            'title' => 'Моя доска',
-            'description' => 'Личная канбан‑доска'
+            'title' => 'Новая доска',
+            'description' => 'Выберите шаблон'
         ]);
-
-        // Список колонок по умолчанию
-        $defaultColumns = [
-            'Отзывы',
-            'Начисления баллов',
-            'Вопросы',
-            'Конкурсы',
-            'Заказы',
-            'Вывод средств',
-            'Доставка',
-            'Ответы',
-            'Обратная связь'
-        ];
-
-        $board->columns()->create([
-            'title' => 'По умолчанию',
-            'position' => 0,
-            'can_remove'=>false,
-            'thread'=>0,
-        ]);
-
-        foreach ($defaultColumns as $index => $title) {
-            $board->columns()->create([
-                'title' => $title,
-                'position' => $index+1,
-                'thread' => $index+1
-            ]);
-        }
 
         // Сохраняем UUID в сессию
         $request->session()->put('board_uuid', $board->uuid);
 
-        return redirect('/board/' . $board->uuid);
+        return redirect('/board/' . $board->uuid );
     }
+
+    public function chooseTemplate()
+    {
+        $templates = config('board_templates');
+
+        return response()->json(
+            collect($templates)->map(function ($tpl, $key) {
+                return [
+                    'id' => $key,
+                    'title' => $tpl['title'],
+                    'icon' => $tpl['icon'],
+                ];
+            })->values()
+        );
+    }
+
+
+    public function applyTemplate(Request $request, $uuid)
+    {
+        $request->validate([
+            'template' => 'required|string'
+        ]);
+
+        $board = Board::where('uuid', $uuid)->firstOrFail();
+        $templates = config('board_templates');
+
+        if (!isset($templates[$request->template])) {
+            return response()->json(['error' => 'Template not found'], 404);
+        }
+
+        $tpl = $templates[$request->template];
+
+        foreach ($tpl['columns'] as $index => $title) {
+            $board->columns()->create([
+                'title' => $title,
+                'position' => $index,
+                'thread' => $index,
+            ]);
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
 
 }
