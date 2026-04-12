@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6b5206f6a30189fa1cf509053484c905",
+    "content-hash": "591a7c9ee04877c479e2d906bd34a564",
     "packages": [
         {
             "name": "brick/math",
@@ -719,6 +719,51 @@
                 }
             ],
             "time": "2025-03-06T22:45:56+00:00"
+        },
+        {
+            "name": "exxxar/kanban-laravel",
+            "version": "v1.0.13",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/exxxar/kanban-crm-sdk.git",
+                "reference": "968c347a7153ca92d970106f99f3a66cc2eb95af"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/exxxar/kanban-crm-sdk/zipball/968c347a7153ca92d970106f99f3a66cc2eb95af",
+                "reference": "968c347a7153ca92d970106f99f3a66cc2eb95af",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.0",
+                "php": ">=8.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Kanban": "KanbanTaskTypeEnum"
+                    },
+                    "providers": [
+                        "Exxxar\\Kanban\\KanbanServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Exxxar\\Kanban\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Laravel SDK for Kanban CRM Board API",
+            "support": {
+                "issues": "https://github.com/exxxar/kanban-crm-sdk/issues",
+                "source": "https://github.com/exxxar/kanban-crm-sdk/tree/v1.0.13"
+            },
+            "time": "2026-03-25T05:56:04+00:00"
         },
         {
             "name": "ezyang/htmlpurifier",

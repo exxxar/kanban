@@ -5,19 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\Column;
 use App\Models\Board;
+use Exxxar\Kanban\DTO\MessageDto;
 use Illuminate\Http\Request;
 use App\Enums\CardTypeEnum;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TaskCreatedMail;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ApiController extends Controller
 {
-    public function handler(Request $request)
+    public function create(Request $request)
     {
         $validated = $request->validate([
-            'board_uuid' => 'required|string',
+         //   'board_uuid' => 'required|string',
             'thread' => 'required|integer',
             'title' => 'required|string',
             'description' => 'nullable|string',
@@ -73,6 +75,218 @@ class ApiController extends Controller
         return response()->json([
             'success' => true,
             'task' => $task
+        ]);
+    }
+
+    public function getTasks(Request $request)
+    {
+        $board = $request->board;
+
+        if (!$board) {
+            Log::error('API Error: Board not found in request context.');
+            return response()->json(['success' => false, 'message' => 'Board context missing'], 500);
+        }
+
+        $tasks = Task::where('board_id', $board->id)->get();
+
+        return response()->json([
+            'success' => true,
+            'tasks' => $tasks
+        ]);
+    }
+
+    public function getTask(Request $request, $taskId)
+    {
+        $board = $request->board;
+
+        if (!$board) {
+            Log::error('API Error: Board not found in request context.');
+            return response()->json(['success' => false, 'message' => 'Board context missing'], 500);
+        }
+
+        $task = Task::where('board_id', $board->id)
+            ->where('id', $taskId)
+            ->first();
+
+        if (!$task) {
+            return response()->json(['success' => false, 'message' => 'Task not found'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'task' => $task
+        ]);
+    }
+
+    public function comments(Request $request, $taskId)
+    {
+        $board = $request->board;
+
+        if (!$board) {
+            Log::error('API Error: Board not found in request context.');
+            return response()->json(['success' => false, 'message' => 'Board context missing'], 500);
+        }
+
+        $task = Task::where('board_id', $board->id)
+            ->where('id', $taskId)
+            ->first();
+
+        if (!$task) {
+            return response()->json(['success' => false, 'message' => 'Task not found'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'comments' => $task->comments
+        ]);
+    }
+
+    public function addComment(Request $request, $taskId)
+    {
+        $validated = $request->validate([
+            'text' => 'required|string',
+        ]);
+
+        $board = $request->board;
+
+        if (!$board) {
+            Log::error('API Error: Board not found in request context.');
+            return response()->json(['success' => false, 'message' => 'Board context missing'], 500);
+        }
+
+        $task = Task::where('board_id', $board->id)
+            ->where('id', $taskId)
+            ->firstOrFail();
+
+        $comment = $task->comments()->create([
+            'text' => $validated['text'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'comment' => $comment
+        ]);
+    }
+
+    public function attachments(Request $request, $taskId)
+    {
+        $board = $request->board;
+
+        if (!$board) {
+            Log::error('API Error: Board not found in request context.');
+            return response()->json(['success' => false, 'message' => 'Board context missing'], 500);
+        }
+
+        $task = Task::where('board_id', $board->id)
+            ->where('id', $taskId)
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'attachments' => $task->attachments
+        ]);
+    }
+
+    public function uploadAttachments(Request $request, $taskId)
+    {
+        $validated = $request->validate([
+            'files' => 'required|array',
+            'files.*' => 'file|max:10240',
+        ]);
+
+        $board = $request->board;
+
+        if (!$board) {
+            Log::error('API Error: Board not found in request context.');
+            return response()->json(['success' => false, 'message' => 'Board context missing'], 500);
+        }
+
+        $task = Task::where('board_id', $board->id)
+            ->where('id', $taskId)
+            ->firstOrFail();
+
+        $attachments = [];
+
+        foreach ($request->file('files') as $file) {
+            $path = $file->store('attachments');
+
+            $attachments[] = $task->attachments()->create([
+                'path' => $path,
+                'name' => $file->getClientOriginalName(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'attachments' => $attachments
+        ]);
+    }
+
+    public function sendMessage(Request $request, $taskId)
+    {
+        $validated = $request->validate([
+            'message' => 'nullable|string',
+            'payload' => 'nullable|array',
+
+            'sender_type' => 'required|string',
+            'sender_label' => 'nullable|string',
+
+            'files' => 'nullable|array',
+            'files.*' => 'file|max:10240',
+        ]);
+
+        $board = $request->board;
+
+        if (!$board) {
+            Log::error('API Error: Board not found in request context.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Board context missing'
+            ], 500);
+        }
+
+        $task = Task::where('board_id', $board->id)
+            ->where('id', $taskId)
+            ->firstOrFail();
+
+        // 📩 создаём сообщение
+        $message = $task->messages()->create([
+            'sender_type' => $validated['sender_type'],
+            'sender_label' => $validated['sender_label'] ?? null,
+            'message' => $validated['message'] ?? null,
+            'payload' => $validated['payload'] ?? [],
+            'is_read' => false,
+        ]);
+
+        // 📎 сохраняем файлы
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $path = $file->store('attachments', 'public');
+
+                $message->attachments()->create([
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName(),
+                ]);
+            }
+        }
+
+        // 🔄 грузим attachments
+        $message->load('attachments');
+
+        // 🔥 приводим к DTO-совместимому массиву
+        $data = $message->toArray();
+
+        $data['attachments'] = $message->attachments->map(function ($a) {
+            return [
+                'name' => $a->name,
+                'url' => Storage::disk('public')->url($a->path),
+            ];
+        })->toArray();
+
+        // 🚀 возвращаем строго по DTO
+        return response()->json([
+            'success' => true,
+            'message' => MessageDto::fromArray($data)
         ]);
     }
 

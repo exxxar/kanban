@@ -117,9 +117,9 @@ Route::prefix('push')->group(function () {
     Route::get('test', [PushController::class, 'sendTest']);
 });
 
-Route::post("/token", function (Request $request){
+Route::post("/token", function (Request $request) {
     $request->validate([
-        "uuid"=>"required"
+        "uuid" => "required"
     ]);
 
     $uuid = $request->uuid;
@@ -129,16 +129,16 @@ Route::post("/token", function (Request $request){
     $token = 'kb_' . Str::random(40);
 
     $tokens = ApiToken::query()
-        ->where( 'board_id', $board->id)
+        ->where('board_id', $board->id)
         ->orderBy("created_at", "asc")
         ->get();
 
-/*    $limit = env("APP_TOKENS_LIMIT", 10);
+    /*    $limit = env("APP_TOKENS_LIMIT", 10);
 
-    if (count($tokens)>=$limit)
-    {
-        $tokens[0]->delete();
-    }*/
+        if (count($tokens)>=$limit)
+        {
+            $tokens[0]->delete();
+        }*/
 
     ApiToken::create([
         'board_id' => $board->id,
@@ -151,7 +151,7 @@ Route::post("/token", function (Request $request){
     ]);
 
     return [
-        "token"=>$token
+        "token" => $token
     ];
 });
 
@@ -171,10 +171,29 @@ Route::delete('comments/{comment}/attachment', [TaskCommentController::class, 'd
 Route::prefix('task')
     ->middleware(['api.auth'])
     ->group(function () {
-    Route::post('create', [ApiController::class, 'handler']);
-});
+        Route::post('create', [ApiController::class, 'create']);
+        // получить одну задачу
+        Route::get('{taskId}', [ApiController::class, 'getTask']);
+
+        // комментарии
+        Route::get('{taskId}/comments', [ApiController::class, 'comments']);
+        Route::post('{taskId}/comment', [ApiController::class, 'addComment']);
+
+        // вложения
+        Route::get('{taskId}/attachments', [ApiController::class, 'attachments']);
+        Route::post('{taskId}/attachments', [ApiController::class, 'uploadAttachments']);
+
+        // сообщения
+        Route::post('{taskId}/message', [ApiController::class, 'sendMessage']);
+    });
+
+Route::prefix('tasks')
+    ->middleware(['api.auth'])
+    ->group(function () {
+        Route::get('/', [ApiController::class, 'getTasks']);
+    });
 
 Route::prefix('test')->group(function () {
-    Route::post('/webhook', [BoardController::class,"testWebhook"]);
-    Route::post('/email', [BoardController::class,"testEmail"]);
+    Route::post('/webhook', [BoardController::class, "testWebhook"]);
+    Route::post('/email', [BoardController::class, "testEmail"]);
 });
