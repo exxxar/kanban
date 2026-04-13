@@ -10,6 +10,7 @@ class Task extends Model
     protected $fillable = [
         'column_id',
         'title',
+        'board_id',
         'description',
         'priority',
         'due_date',
@@ -28,6 +29,8 @@ class Task extends Model
         'subtasks' => 'array',
         'attachments' => 'array',
         'type' => 'integer',
+        'board_id' => 'integer',
+        'column_id' => 'integer',
         'due_date' => 'date',
         'last_viewed_at' => 'datetime'
     ];
