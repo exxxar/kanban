@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Column extends Model
 {
-    protected $fillable = ['title', 'position', 'thread','can_remove'];
+    protected $fillable = ['title', 'position', 'thread','can_remove', 'board_id'];
 
     protected $casts = [
         "can_remove"=>"boolean"

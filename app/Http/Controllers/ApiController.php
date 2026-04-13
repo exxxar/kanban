@@ -56,6 +56,7 @@ class ApiController extends Controller
             if (is_null($column)){
                 $column = Column::query()
                     ->create([
+                        "board_id"=>$board->id,
                         'title'=>"По умолчанию",
                         'position'=>0,
                         'thread'=>0,
@@ -77,7 +78,7 @@ class ApiController extends Controller
 
         Log::info('api task create'.print_r($payload, true));
 
-        Task::where('column_id', $request->column_id)
+        Task::where('column_id', $column->id)
             ->increment('position');
 
         $task = Task::query()
