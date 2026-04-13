@@ -8,8 +8,8 @@ import { fromNow } from '@/stores/utils/time.js';
         @dragstart="$emit('dragstart', task)"
         @dragover.prevent
         @drop.stop="$emit('drop', task)"
-        :class="{ 'bg-warning bg-opacity-25': !task.last_viewed_at }"
-        class="kanban-task p-2 mb-2 bg-white rounded shadow-sm"
+        :class="{ 'bg-danger bg-opacity-25': !task.last_viewed_at, 'bg-white':task.last_viewed_at }"
+        class="kanban-task p-2 mb-2  rounded shadow-sm"
         @dblclick="$emit('edit', task)">
 
         <div v-if="firstImage" class="task-image-preview mb-2">
