@@ -113,6 +113,7 @@ class KanbanController extends Controller
 
         $task = $board->tasks()->create([
             'column_id' => $request->column_id,
+            'board_id' => $board->id,
             'title' => $request->title,
             'description' => $request->description,
             'priority' => $request->priority,
@@ -125,6 +126,7 @@ class KanbanController extends Controller
         Log::info('web task create'.print_r([
                 'column_id' => $request->column_id,
                 'title' => $request->title,
+                'board_id' => $board->id,
                 'description' => $request->description,
                 'priority' => $request->priority,
                 'due_date' => $request->due_date,
