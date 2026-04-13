@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
+import {defineStore} from 'pinia'
 import axios from 'axios'
-import { detectChanges, notifyChange } from './utils/boardChanges'
-import { apiRequest } from '@/stores/utils/api.js'
+import {detectChanges, notifyChange} from './utils/boardChanges'
+import {apiRequest} from '@/stores/utils/api.js'
 
 
 export const useKanbanStore = defineStore('kanban', {
@@ -39,7 +39,7 @@ export const useKanbanStore = defineStore('kanban', {
             this.loading = true
             this.error = null
             try {
-                const { data } = await axios.post('/api/test/webhook', payload)
+                const {data} = await axios.post('/api/test/webhook', payload)
                 this.webhookTestResult = data
                 return data
             } catch (e) {
@@ -57,7 +57,7 @@ export const useKanbanStore = defineStore('kanban', {
             this.loading = true
             this.error = null
             try {
-                const { data } = await axios.post('/api/test/email', payload)
+                const {data} = await axios.post('/api/test/email', payload)
                 this.emailTestResult = data
                 return data
             } catch (e) {
@@ -68,11 +68,11 @@ export const useKanbanStore = defineStore('kanban', {
             }
         },
         async saveConfig(uuid, config) {
-            const { data } = await apiRequest('post', `/api/boards/${uuid}/config`, config)
+            const {data} = await apiRequest('post', `/api/boards/${uuid}/config`, config)
             this.board.config = data
         },
         async renameBoard(uuid, title) {
-            const { data } = await apiRequest('put', `/api/boards/${uuid}`, { title })
+            const {data} = await apiRequest('put', `/api/boards/${uuid}`, {title})
             this.board.title = data.title
         },
 
@@ -84,7 +84,7 @@ export const useKanbanStore = defineStore('kanban', {
                 page = (info.page || 1) + 1
             }
 
-            const { data } = await axios.get(`/api/columns/${columnId}/tasks?page=${page}`)
+            const {data} = await axios.get(`/api/columns/${columnId}/tasks?page=${page}`)
             const column = this.getColumnById(columnId)
             if (!column) return
 
@@ -95,8 +95,8 @@ export const useKanbanStore = defineStore('kanban', {
             }
         },
         async createColumn(uuid, title) {
-            const { data } = await apiRequest('post', `/api/boards/${uuid}/columns`, { title })
-            this.columns.push({ ...data, tasks: [] })
+            const {data} = await apiRequest('post', `/api/boards/${uuid}/columns`, {title})
+            this.columns.push({...data, tasks: []})
             return data
         },
 
@@ -110,8 +110,10 @@ export const useKanbanStore = defineStore('kanban', {
             const oldBoard = JSON.parse(JSON.stringify(this.board))
             const oldColumns = JSON.parse(JSON.stringify(this.columns))
 
+            this.taskPagination = {}
+
             try {
-                const { data } = await axios.get(`/api/boards/${uuid}`)
+                const {data} = await axios.get(`/api/boards/${uuid}`)
 
                 detectChanges(oldBoard, oldColumns, data, notifyChange)
 
@@ -132,7 +134,7 @@ export const useKanbanStore = defineStore('kanban', {
 
 
         async updateColumn(columnId, payload) {
-            const { data } = await apiRequest('put', `/api/columns/${columnId}`, payload)
+            const {data} = await apiRequest('put', `/api/columns/${columnId}`, payload)
             const idx = this.columns.findIndex(c => c.id === columnId)
             if (idx !== -1) this.columns[idx] = data
         },
@@ -152,7 +154,7 @@ export const useKanbanStore = defineStore('kanban', {
         async createTask(uuid, task) {
             this.loading = true
             try {
-                const { data } = await apiRequest('post', `/api/boards/${uuid}/tasks`, task)
+                const {data} = await apiRequest('post', `/api/boards/${uuid}/tasks`, task)
                 const column = this.getColumnById(data.column_id)
                 if (column) column.tasks.unshift(data)
                 return data
@@ -168,7 +170,7 @@ export const useKanbanStore = defineStore('kanban', {
             this.loading = true
             this.error = null
             try {
-                const { data } = await apiRequest('put', `/api/tasks/${task.id}`, task)
+                const {data} = await apiRequest('put', `/api/tasks/${task.id}`, task)
                 const column = this.getColumnById(data.column_id)
                 if (column) {
                     const idx = column.tasks.findIndex(t => t.id === data.id)
@@ -212,10 +214,10 @@ export const useKanbanStore = defineStore('kanban', {
 
             fromColumn.tasks = fromColumn.tasks.filter(t => t.id !== taskId)
             const toColumn = this.getColumnById(toColumnId)
-            if (toColumn) toColumn.tasks.push({ ...task, column_id: toColumnId })
+            if (toColumn) toColumn.tasks.push({...task, column_id: toColumnId})
         },
         async renameColumn(columnId, newTitle) {
-            const { data } = await apiRequest('put', `/api/columns/${columnId}`, { title: newTitle })
+            const {data} = await apiRequest('put', `/api/columns/${columnId}`, {title: newTitle})
             const idx = this.columns.findIndex(c => c.id === columnId)
             if (idx !== -1) this.columns[idx].title = data.title
             return data
@@ -237,19 +239,19 @@ export const useKanbanStore = defineStore('kanban', {
         },
 
         async duplicateTask(task) {
-            const { data } = await apiRequest('post', `/api/tasks/${task.id}/duplicate`)
+            const {data} = await apiRequest('post', `/api/tasks/${task.id}/duplicate`)
             const column = this.getColumnById(data.column_id)
             if (column) column.tasks.push(data)
             return data
         },
 
         async loadTags(uuid) {
-            const { data } = await axios.get(`/api/boards/${uuid}/tags`)
+            const {data} = await axios.get(`/api/boards/${uuid}/tags`)
             this.tags = data
         },
 
         async createTag(uuid, name, color = '#999999') {
-            const { data } = await axios.post(`/api/boards/${uuid}/tags`, { name, color })
+            const {data} = await axios.post(`/api/boards/${uuid}/tags`, {name, color})
             this.tags.push(data)
             return data
         },
@@ -260,7 +262,7 @@ export const useKanbanStore = defineStore('kanban', {
             cols.splice(toIndex, 0, moved)
             this.columns = cols
             const order = this.columns.map(c => c.id)
-            return await apiRequest('put', `/api/boards/${this.board.uuid}/columns/reorder`, { order })
+            return await apiRequest('put', `/api/boards/${this.board.uuid}/columns/reorder`, {order})
         },
 
         async deleteTag(tagId) {
@@ -272,7 +274,7 @@ export const useKanbanStore = defineStore('kanban', {
             this.error = null
 
             try {
-                const { data } = await apiRequest('post', `/api/boards/${uuid}/refresh-uuid`)
+                const {data} = await apiRequest('post', `/api/boards/${uuid}/refresh-uuid`)
                 return data
             } catch (error) {
                 this.error = error.response?.data?.message || 'Ошибка при обновлении ключа доски'
