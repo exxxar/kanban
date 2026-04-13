@@ -205,15 +205,20 @@ class ApiController extends Controller
             ->where('id', $taskId)
             ->firstOrFail();
 
-        $attachments = [];
 
-        foreach ($request->file('files') as $file) {
-            $path = $file->store('attachments');
 
-            $attachments[] = $task->attachments()->create([
-                'path' => $path,
-                'name' => $file->getClientOriginalName(),
-            ]);
+        if ($request->hasFile('files')) {
+            $attachments = $task->attachments ?? [];
+            foreach ($request->file('files') as $file) {
+                $path = $file->store('attachments', 'public');
+                $attachments[] = [
+                    'url' => $path,
+                    'title' => $file->getClientOriginalName(),
+                ];
+
+            }
+            $task->attachments = $attachments ?? [];
+            $task->save();
         }
 
         return response()->json([
@@ -260,25 +265,26 @@ class ApiController extends Controller
 
         // 📎 сохраняем файлы
         if ($request->hasFile('files')) {
+            $attachments = $message->attachments ?? [];
             foreach ($request->file('files') as $file) {
                 $path = $file->store('attachments', 'public');
+                $attachments[] = [
+                    'url' => $path,
+                    'title' => $file->getClientOriginalName(),
+                ];
 
-                $message->attachments()->create([
-                    'path' => $path,
-                    'name' => $file->getClientOriginalName(),
-                ]);
             }
+            $message->attachments = $attachments ?? [];
+            $message->save();
         }
 
-        // 🔄 грузим attachments
-        $message->load('attachments');
 
         // 🔥 приводим к DTO-совместимому массиву
         $data = $message->toArray();
 
         $data['attachments'] = $message->attachments->map(function ($a) {
             return [
-                'name' => $a->name,
+                'title' => $a->name,
                 'url' => Storage::disk('public')->url($a->path),
             ];
         })->toArray();
