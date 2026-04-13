@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\BoardUpdated;
 use App\Models\Task;
 use App\Models\Column;
 use App\Models\Board;
@@ -40,15 +41,30 @@ class ApiController extends Controller
              return response()->json(['success' => false, 'message' => 'Board context missing'], 500);
         }
 
-        $column = Column::where('board_id', $board->id)
+
+        $column = Column::query()
+            ->where('board_id', $board->id)
             ->where('thread', $validated['thread'])
             ->first();
 
         if (!$column) {
-            $column = Column::where('board_id', $board->id)
+            $column = Column::query()
+                ->where('board_id', $board->id)
                 ->where('thread', 0)
                 ->firstOrFail();
+
+            if (is_null($column)){
+                $column = Column::query()
+                    ->create([
+                        'title'=>"По умолчанию",
+                        'position'=>0,
+                        'thread'=>0,
+                        'can_remove'=>false
+                    ]);
+            }
         }
+
+
 
         $type = CardTypeEnum::from($validated['type']);
 
@@ -59,7 +75,13 @@ class ApiController extends Controller
         $payload['board_id'] = $board->id;
         $payload['column_id'] = $column->id;
 
-        $task = Task::create($payload);
+        Log::info('api task create'.print_r($payload, true));
+
+        Task::where('column_id', $request->column_id)
+            ->increment('position');
+
+        $task = Task::query()
+            ->create($payload);
 
         $mailTo = $board->config["email_for_notification"] ?? null;
         $canSendEmailNotification = $board->config["need_email_notification"] ?? false;
@@ -71,6 +93,8 @@ class ApiController extends Controller
                 Log::warning('Could not send API task creation email: ' . $e->getMessage());
             }
         }
+
+        event(new BoardUpdated($board));
 
         return response()->json([
             'success' => true,
