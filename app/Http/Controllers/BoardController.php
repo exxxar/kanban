@@ -19,13 +19,22 @@ class BoardController extends Controller
     {
         $board = Board::where('uuid', $uuid)
             ->with([
+                'columns' => function ($q) {
+                    $q->withCount('tasks'); // 👈 вот это ключ
+                },
                 'columns.tasks' => function ($q) {
                     $q->withCount('comments')
-                        ->orderBy('position', 'asc')
-                        ->take(5);
+                        ->orderBy('position', 'asc');
                 }
             ])
             ->first();
+
+        $board->columns->each(function ($column) {
+            $column->setRelation(
+                'tasks',
+                $column->tasks->take(5)
+            );
+        });
 
 
         if (!is_null($board)) {

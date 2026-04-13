@@ -77,8 +77,9 @@ export const useKanbanStore = defineStore('kanban', {
         },
 
         async loadTasks(columnId) {
-            let page = 1
+            let page = 2
             const info = this.taskPagination[columnId]
+
             if (info && info.page < info.lastPage) {
                 page = (info.page || 1) + 1
             }

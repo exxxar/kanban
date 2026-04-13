@@ -212,6 +212,7 @@ export default {
 
     async mounted() {
 
+        console.log("board", this.board)
         this.need_request_updates = JSON.parse(localStorage.getItem("need_request_updates") || 'false'  )
 
         // Если колонок нет → показываем модалку выбора шаблона

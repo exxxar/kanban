@@ -138,8 +138,10 @@ button {
 .kanban-tasks {
 
     flex-grow: 1;
-    min-height: 400px;
+    height: 60vh;
     transition: background-color 0.2s;
+    overflow-y: scroll;
+    padding: 5px;
 }
 
 .kanban-tasks.drag-over {

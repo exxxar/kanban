@@ -64,14 +64,16 @@
             @delete="deleteTask"
         />
 
-            <button
-                v-if="canLoadMore"
-                class="btn btn-sm btn-secondary w-100 mt-2"
-                @click="loadMore"
-            >
-                Загрузить ещё
-            </button>
+
         </div>
+
+        <button
+            v-if="canLoadMore"
+            class="btn btn-sm btn-secondary w-100 mt-2"
+            @click="loadMore"
+        >
+            Загрузить ещё ({{column.tasks_count - column.tasks.length}}ед.)
+        </button>
 
         <ConfirmModal
             v-model:show="showDeleteModal"
@@ -113,9 +115,13 @@ export default {
     },
     computed: {
         canLoadMore() {
-            const info = this.store.taskPagination[this.column.id] || null
-            if (!info)
-                return false;
+
+           const info = this.store.taskPagination[this.column.id] || null
+            if (!info )
+            {
+                return this.column.tasks_count > this.column.tasks.length
+            }
+
 
             return info && info.page < info.lastPage
         }

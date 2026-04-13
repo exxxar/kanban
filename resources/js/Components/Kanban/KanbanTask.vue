@@ -1,3 +1,6 @@
+<script setup>
+import { fromNow } from '@/stores/utils/time.js';
+</script>
 <template>
     <div
         :data-card-id="task.id"
@@ -92,6 +95,9 @@
             </span>
         </div>
 
+        <span
+            style="font-size: 10px;"
+            class=" fst-italic text-secondary"><i class="fa-solid fa-clock "></i> {{ fromNow(task.created_at) }}</span>
 
         <!-- Инфо-строка: счётчики -->
         <div v-if="hasCounters" class="task-counters d-flex align-items-center flex-wrap gap-2 mt-2 pt-1 border-top">
@@ -145,7 +151,11 @@
 </template>
 
 <script>
-export default {
+
+
+
+export default{
+
     props: {
         task: Object
     },
@@ -160,6 +170,7 @@ export default {
         }
     },
     computed: {
+
         firstImage() {
             if (!this.task.attachments || !this.task.attachments.length) return null;
             let img = this.task.attachments.find(f => f.mime && f.mime.startsWith('image/'));

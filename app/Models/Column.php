@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Column extends Model
 {
@@ -13,13 +15,15 @@ class Column extends Model
         "can_remove"=>"boolean"
     ];
 
-    public function board()
+    protected $with = ["tasks"];
+
+    public function board():BelongsTo
     {
         return $this->belongsTo(Board::class);
     }
 
-    public function tasks()
+    public function tasks():HasMany
     {
-        return $this->hasMany(Task::class)->orderBy('position');
+        return $this->hasMany(Task::class,'column_id','id')->orderBy('position');
     }
 }
