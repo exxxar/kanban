@@ -122,6 +122,17 @@ class KanbanController extends Controller
             'position' => 0//Task::where('column_id', $request->column_id)->count()
         ]);
 
+        Log::info('web task create'.print_r([
+                'column_id' => $request->column_id,
+                'title' => $request->title,
+                'description' => $request->description,
+                'priority' => $request->priority,
+                'due_date' => $request->due_date,
+                'labels' => $request->labels ?? [],
+                'subtasks' => $request->subtasks ?? [],
+                'position' => 0//Task::where('column_id', $request->column_id)->count()
+            ], true));
+
         $task->tags()->sync($request->tag_ids ?? []);
 
         try {

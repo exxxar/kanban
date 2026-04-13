@@ -81,8 +81,7 @@ class ApiController extends Controller
         Task::where('column_id', $column->id)
             ->increment('position');
 
-        $task = Task::query()
-            ->create($payload);
+        $task = $board->tasks()->create($payload);
 
         $mailTo = $board->config["email_for_notification"] ?? null;
         $canSendEmailNotification = $board->config["need_email_notification"] ?? false;
