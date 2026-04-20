@@ -8,6 +8,23 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
+    public function updateNotifications(Request $request, Column $column)
+    {
+        $validated = $request->validate([
+            'notifications' => 'required|array'
+        ]);
+
+        $column->notifications = $validated['notifications'];
+        $column->save();
+
+        return response()->json([
+            'ok' => true,
+            'column_id' => $column->id,
+            'notifications' => $column->notifications,
+            'message' => 'Настройки уведомлений успешно сохранены'
+        ]);
+    }
+
     public function markViewed(Task $task)
     {
         $task->update([

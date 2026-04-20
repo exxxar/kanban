@@ -32,6 +32,14 @@ export const useKanbanStore = defineStore('kanban', {
     },
 
     actions: {
+        async testCreateCard(type) {
+            try {
+                const { data } = await axios.post('/api/test/card', { type })
+                return data
+            } catch (e) {
+                console.error('Ошибка тестового создания карточки', e)
+            }
+        },
         async testWebhook(payload = {
             url: null
         }) {
@@ -50,6 +58,20 @@ export const useKanbanStore = defineStore('kanban', {
             }
         },
 
+
+        async updateColumnNotifications(columnId, settings) {
+            try {
+                await axios.post(`/api/columns/${columnId}/notifications`, {
+                    notifications: settings
+                })
+
+                const col = this.columns.find(c => c.id === columnId)
+                if (col) col.notifications = settings
+
+            } catch (e) {
+                console.error("Ошибка обновления уведомлений", e)
+            }
+        },
         async testEmail(payload = {
             email: null,
         }) {
@@ -99,7 +121,22 @@ export const useKanbanStore = defineStore('kanban', {
             this.columns.push({...data, tasks: []})
             return data
         },
+        async reorderColumns(newOrder) {
+            const uuid = this.board.uuid
+            try {
+                await await apiRequest('put', `/api/boards/${uuid}/columns/reorder`, {
+                    order: newOrder
+                })
 
+                // локально переставляем
+                this.columns = this.columns.sort(
+                    (a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id)
+                )
+
+            } catch (e) {
+                console.error('Ошибка сортировки колонок', e)
+            }
+        },
 
         // Загрузка всей доски
         async loadBoard(uuid) {

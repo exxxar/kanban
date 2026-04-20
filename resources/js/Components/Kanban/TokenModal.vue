@@ -1,6 +1,6 @@
 <template>
     <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-fullscreen-sm-down">
             <div class="modal-content">
 
                 <div class="modal-header">
@@ -32,6 +32,9 @@
                         </button>
                     </div>
 
+                    <h6 class="fw-bold my-3">Проверить работу API</h6>
+                    <TestPanel></TestPanel>
+
                 </div>
 
                 <div class="modal-footer">
@@ -51,8 +54,9 @@
 <script>
 import { useAuthTokenStore } from '@/stores/useAuthTokenStore.js'
 import {useKanbanStore} from "@/stores/useKanbanStore.js";
-
+import TestPanel from "@/Components/Kanban/Testing/TestPanel.vue";
 export default {
+    components:{TestPanel},
     data() {
         return {
             store: useAuthTokenStore(),

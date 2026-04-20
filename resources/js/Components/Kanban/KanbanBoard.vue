@@ -79,6 +79,8 @@
 
                 <template v-if="getActiveColumn">
                     <KanbanColumn
+                        @open-notification="openNotificationModal"
+                        @open-sort="showSortModal = true"
                         :column="getActiveColumn"
                         @add-task="openTaskModal">
                     </KanbanColumn>
@@ -98,6 +100,8 @@
 
                 <KanbanColumn
                     :column="column"
+                    @open-sort="showSortModal = true"
+                    @open-notification="openNotificationModal"
                     @add-task="openTaskModal">
                     <template #head>
                         <button
@@ -143,6 +147,22 @@
             @reject="showDeleteModal = false"
         />
 
+
+            <ColumnSortModal
+                :show="showSortModal"
+                :columns="store.columns"
+                @close="showSortModal = false"
+                @save="applySort"
+            />
+
+
+        <ColumnNotificationsModal
+            :show="showNotifications"
+            :column="selectedColumn"
+            @close="showNotifications = false"
+            @save="saveNotifications"
+        />
+
         <ConfirmModal
             v-model:show="showExportModal"
             title="Выгрузить данные в эксель?"
@@ -161,17 +181,22 @@ import KanbanColumn from './KanbanColumn.vue'
 import TaskModal from './TaskModal.vue'
 import ColumnModal from './ColumnModal.vue'
 import ConfirmModal from "@/Components/Kanban/ConfirmModal.vue";
+import ColumnSortModal from "@/Components/Kanban/ColumnSortModal.vue";
+import ColumnNotificationsModal from "@/Components/Kanban/ColumnNotificationsModal.vue";
 import TokenModal from '@/Components/Kanban/TokenModal.vue'
 import KanbanTask from './KanbanTask.vue'
 import BoardSettings from "@/Components/Kanban/BoardSettingsModal.vue";
 
 export default {
-    components: {BoardSettings, KanbanColumn, TaskModal, ColumnModal, ConfirmModal, TokenModal,KanbanTask},
+    components: {BoardSettings,ColumnNotificationsModal, KanbanColumn, TaskModal, ColumnModal, ConfirmModal, TokenModal,KanbanTask, ColumnSortModal},
     props: {initialBoard: Object},
 
     data() {
         return {
+            selectedColumn: null,
+            showNotifications: false,
             activeColumn: 0,
+            showSortModal: false,
             showTokenModal: false,
             showDeleteModal: false,
             showExportModal: false,
@@ -208,11 +233,26 @@ export default {
     },
 
     methods: {
+        openNotificationModal(column){
+          this.selectedColumn = null
+          this.$nextTick(()=>{
+              this.selectedColumn = column
+              this.showNotifications = true
+          })
+        },
+        saveNotifications(settings) {
+            this.store.updateColumnNotifications(this.selectedColumn.id, settings)
+            this.showNotifications = false
+        },
         openActiveColumn(col){
             this.activeColumn = null
             this.$nextTick(()=>{
                 this.activeColumn = col.id
             })
+        },
+        applySort(newOrder) {
+            this.store.reorderColumns(newOrder)
+            this.showSortModal = false
         },
         getTasks(columnId) {
             return this.store.columns.find(c => c.id === columnId)?.tasks ?? []

@@ -84,7 +84,8 @@ import { fromNow } from '@/stores/utils/time.js';
     {{ label }}
 </span>
 
-        <div class="d-flex flex-wrap mt-2 mb-1">
+        <template v-if="task.tags.length>0">
+            <div class="d-flex flex-wrap mt-2 mb-1">
             <span
                 v-for="tag in task.tags"
                 :key="tag.id"
@@ -93,7 +94,9 @@ import { fromNow } from '@/stores/utils/time.js';
             >
                 #{{ tag.name }}
             </span>
-        </div>
+            </div>
+        </template>
+
 
         <span
             style="font-size: 10px;"

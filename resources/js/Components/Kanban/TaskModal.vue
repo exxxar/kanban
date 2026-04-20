@@ -12,7 +12,7 @@ import CardChat from "@/Components/Kanban/Cards/CardChat.vue";
 </script>
 <template>
     <div class="modal modal-lg fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
             <div class="modal-content">
 
                 <!-- HEADER -->

@@ -84,6 +84,9 @@ Route::prefix('columns')->group(function () {
     Route::put('{column}', [KanbanController::class, 'renameColumn'])
         ->middleware('dispatch.board');
     // Получить задачи колонки (пагинация)
+
+    Route::post('/{column}/notifications', [TaskController::class, 'updateNotifications']);
+
     Route::get('{column}/tasks', [TaskController::class, 'paginated'])
         ->middleware('dispatch.board');
     // Переупорядочивание задач в колонке

@@ -1,10 +1,9 @@
-
 <template>
     <div
         :data-column-id="column.id"
         class="kanban-column p-3 bg-light rounded "
-         @dragover.prevent
-         @drop="onDrop">
+        @dragover.prevent
+        @drop="onDrop">
 
         <slot name="head"></slot>
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -36,33 +35,42 @@
 
             </div>
 
-            <!-- Кнопки действий -->
-            <div class="d-flex gap-1">
-                <button class="btn btn-sm btn-primary" @click="addTask">+</button>
-
-                <template v-if="column.can_remove">
-                    <button class="btn btn-sm btn-danger"
-                            @click="showDeleteModal = true"
-                            title="Удалить колонку">
-                        🗑️
-                    </button>
-                </template>
+            <div class="dropdown">
+                <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item"
+                           @click="addTask"
+                           href="javascript:void(0)"><i class="fa-solid fa-folder-plus"></i> Добавить задачу</a></li>
+                    <li><a class="dropdown-item"
+                           @click="$emit('open-sort')"
+                           href="javascript:void(0)"><i class="fa-solid fa-folder-tree"></i> Перенести колонку</a></li>
+                    <li><a class="dropdown-item"
+                           @click="$emit('open-notification', column)"
+                           href="javascript:void(0)"><i class="fa-solid fa-bell"></i> Настройка оповещений</a></li>
+                    <template v-if="column.can_remove">
+                        <li><a class="dropdown-item"
+                               @click="showDeleteModal = true"
+                               href="javascript:void(0)"><i class="fa-solid fa-trash-can"></i> Удалить колонку</a></li>
+                    </template>
+                </ul>
             </div>
         </div>
 
         <div class="kanban-tasks">
             <KanbanTask
-            v-for="task in column.tasks"
-            :key="task.id"
-            :task="task"
-            draggable="true"
-            @dragstart="onDragStart(task)"
-            @edit="editTask"
+                v-for="task in column.tasks"
+                :key="task.id"
+                :task="task"
+                draggable="true"
+                @dragstart="onDragStart(task)"
+                @edit="editTask"
 
-            @drop="onTaskDrop(task)"
-            @duplicate="duplicateTask"
-            @delete="deleteTask"
-        />
+                @drop="onTaskDrop(task)"
+                @duplicate="duplicateTask"
+                @delete="deleteTask"
+            />
 
 
         </div>
@@ -72,7 +80,7 @@
             class="btn btn-sm btn-secondary w-100 mt-2"
             @click="loadMore"
         >
-            Загрузить ещё ({{column.tasks_count - column.tasks.length}}ед.)
+            Загрузить ещё ({{ column.tasks_count - column.tasks.length }}ед.)
         </button>
 
         <ConfirmModal
@@ -93,6 +101,7 @@
 import {useKanbanStore} from '@/stores/useKanbanStore'
 import KanbanTask from './KanbanTask.vue'
 import ConfirmModal from "@/Components/Kanban/ConfirmModal.vue";
+
 export default {
     components: {KanbanTask, ConfirmModal},
 
@@ -102,7 +111,7 @@ export default {
 
     data() {
         return {
-            showDeleteModal:false,
+            showDeleteModal: false,
             dragTask: null,
             editing: false,
             localTitle: this.column.title
@@ -116,9 +125,8 @@ export default {
     computed: {
         canLoadMore() {
 
-           const info = this.store.taskPagination[this.column.id] || null
-            if (!info )
-            {
+            const info = this.store.taskPagination[this.column.id] || null
+            if (!info) {
                 return this.column.tasks_count > this.column.tasks.length
             }
 
