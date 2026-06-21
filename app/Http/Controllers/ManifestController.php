@@ -69,6 +69,8 @@ class ManifestController extends Controller
             "lang" => "ru"
         ];
 
-        return Response::json($manifest);
+        return response()->json($manifest)
+            ->header('Cache-Control', 'public, max-age=3600') // Кэшируем на 1 час
+            ->header('Content-Type', 'application/manifest+json');
     }
 }

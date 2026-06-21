@@ -39,8 +39,6 @@
                 </button>
 
 
-
-
                 <button class="btn btn-secondary" @click="openExportModal">
                     <i class="fas fa-file-export"></i>
                 </button>
@@ -148,12 +146,12 @@
         />
 
 
-            <ColumnSortModal
-                :show="showSortModal"
-                :columns="store.columns"
-                @close="showSortModal = false"
-                @save="applySort"
-            />
+        <ColumnSortModal
+            :show="showSortModal"
+            :columns="store.columns"
+            @close="showSortModal = false"
+            @save="applySort"
+        />
 
 
         <ColumnNotificationsModal
@@ -188,7 +186,17 @@ import KanbanTask from './KanbanTask.vue'
 import BoardSettings from "@/Components/Kanban/BoardSettingsModal.vue";
 
 export default {
-    components: {BoardSettings,ColumnNotificationsModal, KanbanColumn, TaskModal, ColumnModal, ConfirmModal, TokenModal,KanbanTask, ColumnSortModal},
+    components: {
+        BoardSettings,
+        ColumnNotificationsModal,
+        KanbanColumn,
+        TaskModal,
+        ColumnModal,
+        ConfirmModal,
+        TokenModal,
+        KanbanTask,
+        ColumnSortModal
+    },
     props: {initialBoard: Object},
 
     data() {
@@ -213,8 +221,8 @@ export default {
         }
     },
 
-    computed:{
-        getActiveColumn()  {
+    computed: {
+        getActiveColumn() {
             return this.store.columns.find(c => c.id === this.activeColumn)
         }
     },
@@ -222,31 +230,37 @@ export default {
         this.store.columns = this.initialBoard.columns
         this.store.board = this.initialBoard
 
-        this.$nextTick(()=>{
+        this.$nextTick(() => {
             this.activeColumn = this.store.columns[0]?.id || null
         })
         /*   this.store.columns.forEach(col => {
                this.store.loadTasks(col.id)
            })
+
+
    */
+
+        window.addEventListener('select-new-tab', ()=>{
+            this.activeColumn = this.store.columns[0]?.id || null
+        })
 
     },
 
     methods: {
-        openNotificationModal(column){
-          this.selectedColumn = null
-          this.$nextTick(()=>{
-              this.selectedColumn = column
-              this.showNotifications = true
-          })
+        openNotificationModal(column) {
+            this.selectedColumn = null
+            this.$nextTick(() => {
+                this.selectedColumn = column
+                this.showNotifications = true
+            })
         },
         saveNotifications(settings) {
             this.store.updateColumnNotifications(this.selectedColumn.id, settings)
             this.showNotifications = false
         },
-        openActiveColumn(col){
+        openActiveColumn(col) {
             this.activeColumn = null
-            this.$nextTick(()=>{
+            this.$nextTick(() => {
                 this.activeColumn = col.id
             })
         },
@@ -257,7 +271,7 @@ export default {
         getTasks(columnId) {
             return this.store.columns.find(c => c.id === columnId)?.tasks ?? []
         },
-        openConfigModal(){
+        openConfigModal() {
             this.showConfigModal = true
         },
         openTokenModal() {
@@ -290,7 +304,7 @@ export default {
 
             this.showTaskModal = true
         },
-        closeConfigModal(){
+        closeConfigModal() {
             this.showConfigModal = false
         },
         closeTaskModal() {

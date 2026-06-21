@@ -32,6 +32,20 @@ Route::post('/board/join', [BoardController::class, 'join'])
 Route::get('/board/{uuid}', [BoardController::class, 'show'])
     ->name('board.show');
 
+Route::get('/sw.js', function () {
+    $path = public_path('sw.js');
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response(file_get_contents($path), 200, [
+        'Content-Type' => 'application/javascript',
+        'Service-Worker-Allowed' => '/board/',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate', // Важно! Чтобы обновления подхватывались
+    ]);
+});
+
 Route::get('/manifest.json', [ManifestController::class, 'show']);
 
 

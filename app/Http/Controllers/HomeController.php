@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Board;
+use App\Models\Task;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
@@ -192,4 +193,84 @@ class HomeController extends Controller
         return collect($map[$column] ?? ['Ок'])->random();
     }
 
+    public function testCards(Request $request)
+    {
+        $type = (int)$request->type;
+
+        $payload = match ($type) {
+
+            // USER CARD
+            1 => [
+                'name' => 'Тестовый пользователь',
+                'phone' => '+79990000000',
+                'email' => 'test@example.com',
+                'meta' => [
+                    'source' => 'test-api',
+                    'generated_at' => now()->toISOString()
+                ]
+            ],
+
+            // ORDER CARD
+            2 => [
+                'order_id' => rand(1000, 9999),
+                'sum' => rand(500, 5000),
+                'customer' => [
+                    'name' => 'Иван Петров',
+                    'phone' => '+79991234567'
+                ],
+                'items' => [
+                    ['name' => 'Пицца Маргарита', 'qty' => 1, 'price' => 790],
+                    ['name' => 'Салат Цезарь', 'qty' => 1, 'price' => 450]
+                ],
+                'meta' => [
+                    'source' => 'test-api',
+                    'generated_at' => now()->toISOString()
+                ]
+            ],
+
+            // TEXT CARD
+            3 => [
+                'text' => 'Тестовое текстовое сообщение',
+                'author' => 'Система',
+                'meta' => [
+                    'generated_at' => now()->toISOString()
+                ]
+            ],
+
+            // FINANCE CARD
+            4 => [
+                'amount' => rand(100, 1000),
+                'category' => 'Тестовая категория',
+                'operation' => 'income',
+                'meta' => [
+                    'generated_at' => now()->toISOString()
+                ]
+            ],
+
+            // DEVELOPMENT CARD
+            5 => [
+                'task' => 'Тестовая разработческая задача',
+                'priority' => 'high',
+                'status' => 'open',
+                'meta' => [
+                    'generated_at' => now()->toISOString()
+                ]
+            ],
+
+            default => [
+                'info' => 'Неизвестный тип карточки'
+            ]
+        };
+
+        Task::query()
+            ->create($payload);
+
+        return response()->json([
+            'ok' => true,
+            'type' => $type,
+            'payload' => $payload,
+            'message' => 'Тестовая карточка успешно сгенерирована'
+        ]);
+
+    }
 }

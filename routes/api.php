@@ -61,6 +61,12 @@ Route::prefix('boards')->group(function () {
 });
 
 
+Route::prefix('test')->group(function () {
+    Route::post('/card', [HomeController::class,'testCards']);
+});
+
+
+
 Route::prefix('cards')->group(function () {
     // История сообщений по карточке
     Route::get('/{cardId}/messages', [ChatController::class, 'index']);

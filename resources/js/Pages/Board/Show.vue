@@ -271,7 +271,9 @@ export default {
             modal.hide()
 
             // Обновляем доску
-            await this.store.loadBoard(this.board.uuid)
+            await this.store.loadBoard(this.board.uuid).then(()=>{
+                window.dispatchEvent(new CustomEvent('select-new-tab'))
+            })
         },
 
         installPWA() {
