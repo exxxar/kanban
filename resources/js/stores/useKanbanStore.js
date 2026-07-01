@@ -8,6 +8,7 @@ export const useKanbanStore = defineStore('kanban', {
     state: () => ({
         board: null,
         columns: [],
+        leadSources: [],
         tags: [],
         loading: false,
         taskPagination: {},
@@ -32,6 +33,16 @@ export const useKanbanStore = defineStore('kanban', {
     },
 
     actions: {
+        async fetchLeadSources() {
+            try {
+                const response = await axios.get(`/api/boards/${this.board.uuid}/lead-sources`)
+                this.leadSources = response.data.sources || []
+                return this.leadSources
+            } catch (error) {
+                console.error('Ошибка загрузки источников:', error)
+                return []
+            }
+        },
         async testCreateCard(type) {
             try {
                 const { data } = await axios.post('/api/test/card', { type })
@@ -121,20 +132,51 @@ export const useKanbanStore = defineStore('kanban', {
             this.columns.push({...data, tasks: []})
             return data
         },
-        async reorderColumns(newOrder) {
-            const uuid = this.board.uuid
+        async reorderColumns(draggedColumnId, targetColumnId) {
+            if (draggedColumnId === targetColumnId) return
+
+            // Сохраняем старый порядок для отката
+            const oldOrder = this.board.columns.map(c => c.id)
+
+            // Находим индексы
+            const draggedIndex = this.board.columns.findIndex(c => c.id === draggedColumnId)
+            const targetIndex = this.board.columns.findIndex(c => c.id === targetColumnId)
+
+            if (draggedIndex === -1 || targetIndex === -1) return
+
+            // Создаём новый массив с правильным порядком
+            const newColumns = [...this.board.columns]
+            const [draggedColumn] = newColumns.splice(draggedIndex, 1)
+            newColumns.splice(targetIndex, 0, draggedColumn)
+
+            // Обновляем position у всех колонок
+            newColumns.forEach((col, index) => {
+                col.position = index
+            })
+
+            // ВАЖНО: заменяем массив полностью, чтобы Vue отследил изменения
+            this.board.columns = newColumns
+
+            // Формируем payload для бэкенда
+            const order = newColumns.map(c => c.id)
+
             try {
-                await await apiRequest('put', `/api/boards/${uuid}/columns/reorder`, {
-                    order: newOrder
+                await axios.put(`/api/boards/${this.board.uuid}/columns/reorder`, {
+                    order: order,
+                    board_uuid: this.board.uuid
+                })
+            } catch (error) {
+                console.error('Ошибка сортировки колонок:', error)
+                // Откатываем изменения
+                const rollbackColumns = oldOrder
+                    .map(id => newColumns.find(c => c.id === id))
+                    .filter(Boolean)
+
+                rollbackColumns.forEach((col, index) => {
+                    col.position = index
                 })
 
-                // локально переставляем
-                this.columns = this.columns.sort(
-                    (a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id)
-                )
-
-            } catch (e) {
-                console.error('Ошибка сортировки колонок', e)
+                this.board.columns = rollbackColumns
             }
         },
 
@@ -143,6 +185,7 @@ export const useKanbanStore = defineStore('kanban', {
             this.loading = true
             this.error = null
 
+
             // сохраняем старые данные
             const oldBoard = JSON.parse(JSON.stringify(this.board))
             const oldColumns = JSON.parse(JSON.stringify(this.columns))
@@ -150,7 +193,7 @@ export const useKanbanStore = defineStore('kanban', {
             this.taskPagination = {}
 
             try {
-                const {data} = await axios.get(`/api/boards/${uuid}`)
+                const {data} = await axios.get(`/api/boards/${this.board.uuid}`)
 
                 detectChanges(oldBoard, oldColumns, data, notifyChange)
 
@@ -229,29 +272,44 @@ export const useKanbanStore = defineStore('kanban', {
             })
         },
 
-        async moveTask(taskId, toColumnId, newPosition = 0) {
-            if (taskId <= 0 || !taskId)
-                return
+        async moveTask(taskId, targetColumnId) {
+            // Находим задачу
+            let task = null
+            let sourceColumn = null
 
-            await apiRequest('post', '/api/tasks/move', {
-                task_id: taskId,
-                to_column_id: toColumnId,
-                position: newPosition
-            })
-
-            let task = null, fromColumn = null
-            this.columns.forEach(col => {
+            for (const col of this.board.columns) {
                 const found = col.tasks.find(t => t.id === taskId)
                 if (found) {
                     task = found
-                    fromColumn = col
+                    sourceColumn = col
+                    break
                 }
-            })
-            if (!task || !fromColumn) return
+            }
 
-            fromColumn.tasks = fromColumn.tasks.filter(t => t.id !== taskId)
-            const toColumn = this.getColumnById(toColumnId)
-            if (toColumn) toColumn.tasks.push({...task, column_id: toColumnId})
+            if (!task || sourceColumn.id === targetColumnId) return
+
+            const targetColumn = this.board.columns.find(c => c.id === targetColumnId)
+            if (!targetColumn) return
+
+            // Удаляем из старой колонки
+            sourceColumn.tasks = sourceColumn.tasks.filter(t => t.id !== taskId)
+            sourceColumn.tasks_count--
+
+            // Добавляем в новую колонку
+            task.column_id = targetColumnId
+            targetColumn.tasks.push(task)
+            targetColumn.tasks_count++
+
+            // Отправляем на бэкенд
+            try {
+                await axios.post(`/api/tasks/move`, {
+                    task_id: taskId,
+                    column_id: targetColumnId
+                })
+            } catch (error) {
+                console.error('Ошибка перемещения задачи:', error)
+                // Можно откатить изменения
+            }
         },
         async renameColumn(columnId, newTitle) {
             const {data} = await apiRequest('put', `/api/columns/${columnId}`, {title: newTitle})

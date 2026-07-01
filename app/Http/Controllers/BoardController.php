@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\BoardExport;
 use App\Mail\TaskCreatedMail;
 use App\Models\Board;
+use App\Models\Client;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -15,6 +16,44 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class BoardController extends Controller
 {
+
+    public function getBoard($uuid)
+    {
+        $board = Board::where('uuid', $uuid)
+            ->with(['columns.tasks' => function($query) {
+                $query->orderBy('position');
+            }])
+            ->firstOrFail();
+
+        // Убеждаемся что config возвращается
+        return response()->json([
+            'id' => $board->id,
+            'uuid' => $board->uuid,
+            'title' => $board->title,
+            'config' => $board->config ?? [], // ← ВАЖНО!
+            'columns' => $board->columns
+        ]);
+    }
+
+    public function getLeadSources($uuid)
+    {
+        $board = Board::where('uuid', $uuid)->firstOrFail();
+
+        // Получаем уникальные источники из всех клиентов этой доски
+        $sources = Client::whereHas('task', function($query) use ($board) {
+            $query->where('board_id', $board->id);
+        })
+            ->whereNotNull('source')
+            ->where('source', '!=', '')
+            ->distinct()
+            ->pluck('source')
+            ->values();
+
+        return response()->json([
+            'sources' => $sources
+        ]);
+    }
+
     public function show(Request $request, $uuid)
     {
         $board = Board::where('uuid', $uuid)
@@ -197,18 +236,37 @@ class BoardController extends Controller
             'webhook_url' => 'nullable|url',
             'email_for_notification' => 'nullable|email',
             'need_email_notification' => 'boolean',
+
+            'linked_boards' => 'nullable|array', // ← ДОБАВИТЬ
+            'linked_boards.*.url' => 'required|string',
+            'linked_boards.*.title' => 'nullable|string',
+            'linked_boards.*.uuid' => 'nullable|string',
+
+            'custom_categories'=>'nullable|array',
+            'custom_categories.*.id' => 'nullable|numeric',
+            'custom_categories.*.name' => 'required|string',
+            'custom_categories.*.key' => 'required|string',
+            'custom_categories.*.icon' => 'nullable|string',
+
+            'custom_fields' => 'nullable|array',
+            'custom_fields.*.id' => 'nullable|numeric',
+            'custom_fields.*.title' => 'required|string',
+            'custom_fields.*.icon' => 'nullable|string',
+            'custom_fields.*.color' => 'nullable|string',
+            'custom_fields.*.target' => 'required|in:task,client',
+            'custom_fields.*.fields' => 'nullable|array',
+            'custom_fields.*.fields.*.label' => 'required|string',
+            'custom_fields.*.fields.*.name' => 'required|string|regex:/^[a-z0-9_]+$/',
+            'custom_fields.*.fields.*.type' => 'required|in:text,number,date,email,url,textarea',
         ]);
 
         $board = Board::where('uuid', $uuid)
             ->firstOrFail();
 
-        $config = $board->config ?? [];
-        $config["webhook_url"] = $request->get("webhook_url") ?? null;
-        $config["email_for_notification"] = $request->get("email_for_notification") ?? null;
-        $config["need_email_notification"] = $request->get("need_email_notification") ?? false;
+        $board->update([
+            'config' => array_merge($board->config ?? [], $validated)
+        ]);
 
-        $board->config = $config;
-        $board->save();
 
         return response()->json($board->config);
     }

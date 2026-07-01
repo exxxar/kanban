@@ -1,281 +1,231 @@
-<script setup>
-import { fromNow } from '@/stores/utils/time.js';
-</script>
 <template>
     <div
         :data-card-id="task.id"
         draggable="true"
-        @dragstart="$emit('dragstart', task)"
+        @dragstart="$emit('dragstart', $event, task)"
         @dragover.prevent
-        @drop.stop="$emit('drop', task)"
-        :class="{ 'bg-danger bg-opacity-25': !task.last_viewed_at, 'bg-white':task.last_viewed_at }"
-        class="kanban-task p-2 mb-2  rounded shadow-sm"
+        @drop.stop="$emit('drop', $event, task)"
+        :class="cardClasses"
+        class="kanban-task mb-3 rounded-3"
         @dblclick="$emit('edit', task)">
 
-        <div v-if="firstImage" class="task-image-preview mb-2">
-            <img :src="`/storage/${firstImage.path}`" :alt="firstImage.name" class="task-preview-img" />
-        </div>
 
-        <div class="d-flex justify-content-between align-items-start mb-1">
+        <div v-if="isClient" class="card-accent"></div>
 
-            <strong style="line-height: 100%;">{{ task.title }}</strong>
+        <!-- ШАПКА КАРТОЧКИ -->
+        <div class="card-header-custom">
+            <!-- Drag handle -->
+            <div class="drag-handle" title="Перетащите карточку">
+                <i class="fa-solid fa-grip-vertical"></i>
+            </div>
 
-            <!-- Dropdown -->
-            <div class="dropdown">
-                <button
-                    class="btn btn-sm btn-light dropdown-toggle"
-                    type="button"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                ></button>
+            <!-- Номер задачи -->
+            <div class="task-number">
+                #{{ task.id }}
+            </div>
 
-                <ul class="dropdown-menu dropdown-menu-end">
-
-                    <li>
-                        <button
-                            class="dropdown-item"
-                            @click.stop="$emit('edit', task)"
-                        >
-                            <i class="fa-solid fa-pen-to-square me-2 text-muted"></i> Редактировать
-                        </button>
-                    </li>
-
-                    <li>
-                        <button
-                            class="dropdown-item"
-                            @click.stop="$emit('duplicate', task)"
-                        >
-                            <i class="fa-solid fa-copy me-2 text-muted"></i> Дублировать
-                        </button>
-                    </li>
-
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-
-                    <li>
-                        <button
-                            class="dropdown-item text-danger"
-                            @click.stop="$emit('delete', task)"
-                        >
-                            <i class="fa-solid fa-trash-can me-2"></i> Удалить
-                        </button>
-                    </li>
-
-                </ul>
+            <!-- Dropdown (справа) -->
+            <div class="task-dropdown-wrapper" @dragstart.stop @mousedown.stop>
+                <TaskActions
+                    :task="task"
+                    @edit-task="$emit('edit-task', task)"
+                    @edit-client="$emit('edit-client', task)"
+                    @chat="$emit('chat', task)"
+                    @duplicate="$emit('duplicate', task)"
+                    @delete="$emit('delete', task)"
+                />
             </div>
         </div>
 
+        <!-- ТЕЛО КАРТОЧКИ -->
+        <div class="card-body-custom">
+            <!-- Рендерим нужный тип карточки -->
+            <component
+                :is="cardComponent"
+                :task="task"
+                @update:showSubtasks="showSubtasks = $event"
+            />
 
-        <div
-            :class="[
-            task.priority==='low'?'bg-secondary':'',
-            task.priority==='medium'?'bg-warning':'',
-            task.priority==='high'?'bg-success':'',
-        ]"
-            class="small badge text-white">{{ priority[task.priority] || '-' }}
-        </div>
+            <TaskCounters
+                v-if="hasCounters"
+                :task="task"
+                :showSubtasks="showSubtasks"
+                @toggleSubtasks="showSubtasks = !showSubtasks"
+            />
 
-        <span
-            v-for="label in task.labels"
-            :key="label"
-            class="badge bg-secondary mx-2"
-        >
-    {{ label }}
-</span>
-
-        <template v-if="task.tags.length>0">
-            <div class="d-flex flex-wrap mt-2 mb-1">
-            <span
-                v-for="tag in task.tags"
-                :key="tag.id"
-                class="bg-info badge mx-2"
-                :style="{ background: tag.color }"
-            >
-                #{{ tag.name }}
-            </span>
-            </div>
-        </template>
-
-
-        <span
-            style="font-size: 10px;"
-            class=" fst-italic text-secondary"><i class="fa-solid fa-clock "></i> {{ fromNow(task.created_at) }}</span>
-
-        <!-- Инфо-строка: счётчики -->
-        <div v-if="hasCounters" class="task-counters d-flex align-items-center flex-wrap gap-2 mt-2 pt-1 border-top">
-
-            <!-- Подзадачи -->
-            <span v-if="task.subtasks && task.subtasks.length"
-                  class="task-counter"
-                  title="Показать/скрыть подзадачи"
-                  @click.stop="showSubtasks = !showSubtasks"
-                  style="cursor: pointer;">
-                <i class="fa-solid fa-list-check me-1"></i>
-                <span :class="{ 'text-success': subtasksDone === task.subtasks.length && task.subtasks.length > 0 }">
-                    {{ subtasksDone }}/{{ task.subtasks.length }}
-                    <i :class="showSubtasks ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" class="ms-1" style="font-size: 9px;"></i>
-                </span>
-            </span>
-
-            <!-- Сообщения -->
-            <span v-if="task.messages?.length>0" class="task-counter" title="Сообщения">
-                <i class="fa-regular fa-comment-dots me-1"></i>
-                {{ task.messages?.length }}
-            </span>
-
-            <!-- Комментарии -->
-            <span v-if="task.comments_count" class="task-counter" title="Комментарии">
-                <i class="fa-regular fa-comment me-1"></i>
-                {{ task.comments_count }}
-            </span>
-
-            <!-- Вложения по типам -->
-            <template v-for="(stat, idx) in attachmentStats" :key="idx">
-                <span class="task-counter" :title="stat.title">
-                    <i :class="[stat.icon, stat.class, 'me-1']"></i>
-                    {{ stat.count }}
-                </span>
-            </template>
-
-        </div>
-
-
-        <!-- Раскрывающийся список подзадач (компактный вид) -->
-        <div v-if="showSubtasks && task.subtasks && task.subtasks.length" class="subtasks-panel mt-2 pt-2 border-top">
-            <div v-for="sub in task.subtasks" :key="sub.id" class="subtask-mini-item d-flex align-items-center mb-1">
-                <span class="subtask-bullet me-2" :class="sub.done ? 'bg-success' : 'bg-light border'"></span>
-                <span class="subtask-mini-text text-truncate" :class="{'text-muted text-decoration-line-through': sub.done}" :title="sub.text">
-                    {{ sub.text }}
-                </span>
-            </div>
+            <SubtasksList
+                v-if="showSubtasks && task.subtasks?.length"
+                :subtasks="task.subtasks"
+            />
         </div>
     </div>
 </template>
 
 <script>
+import TaskDropdown from '@/Components/Kanban/Tasks/TaskDropdown.vue';
+import TaskActions from '@/Components/Kanban/Tasks/TaskActions.vue';
+import ClientCard from '@/Components/Kanban/Clients/ClientCard.vue';
+import TaskCard from '@/Components/Kanban/Tasks/TaskCard.vue';
+import TaskCounters from '@/Components/Kanban/Tasks/TaskCounters.vue';
+import SubtasksList from '@/Components/Kanban/Tasks/SubtasksList.vue';
 
-
-
-export default{
-
+export default {
+    components: {
+        TaskDropdown,
+        TaskActions,
+        ClientCard,
+        TaskCard,
+        TaskCounters,
+        SubtasksList
+    },
     props: {
         task: Object
     },
+    emits: ['dragstart', 'drop', 'edit-client','edit-task','duplicate', 'delete', 'chat'], // ← ДОБАВИТЬ
     data() {
         return {
-            priority: {
-                low: 'Низкий',
-                medium: 'Средний',
-                high: 'Высокий',
-            },
             showSubtasks: false
         }
     },
     computed: {
-
-        firstImage() {
-            if (!this.task.attachments || !this.task.attachments.length) return null;
-            let img = this.task.attachments.find(f => f.mime && f.mime.startsWith('image/'));
-            if(img) return img;
-            return null;
+        isClient() {
+            return this.task.type === 2 || !!this.task.client;
         },
-        subtasksDone() {
-            return this.task.subtasks?.filter(s => s.done).length ?? 0
+        cardComponent() {
+            return this.isClient ? 'ClientCard' : 'TaskCard';
+        },
+        cardClasses() {
+            let classes = ['modern-card'];
+
+            if (this.isClient) {
+                classes.push('client-card');
+            } else if (!this.task.last_viewed_at) {
+                classes.push('unviewed-card');
+            }
+
+            return classes;
         },
         hasCounters() {
             return (this.task.subtasks?.length > 0)
                 || (this.task.comments_count > 0)
                 || (this.task.messages?.length > 0)
-                || (this.task.attachments?.length > 0)
-        },
-        attachmentStats() {
-            if (!this.task.attachments || !this.task.attachments.length) return [];
-
-            const stats = {
-                image: { count: 0, icon: 'fa-regular fa-image', class: 'text-primary', title: 'Изображения' },
-                pdf: { count: 0, icon: 'fa-regular fa-file-pdf', class: 'text-danger', title: 'PDF документы' },
-                word: { count: 0, icon: 'fa-regular fa-file-word', class: 'text-primary', title: 'Документы Word' },
-                excel: { count: 0, icon: 'fa-regular fa-file-excel', class: 'text-success', title: 'Таблицы Excel' },
-                video: { count: 0, icon: 'fa-regular fa-file-video', class: '', title: 'Видео' },
-                other: { count: 0, icon: 'fa-solid fa-paperclip', class: '', title: 'Другие файлы' }
-            };
-
-            this.task.attachments.forEach(file => {
-                const mime = file.mime || '';
-                const name = (file.name || '').toLowerCase();
-
-                if (mime.startsWith('image/')) stats.image.count++;
-                else if (mime === 'application/pdf' || name.endsWith('.pdf')) stats.pdf.count++;
-                else if (mime.includes('word') || name.endsWith('.doc') || name.endsWith('.docx')) stats.word.count++;
-                else if (mime.includes('sheet') || mime.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) stats.excel.count++;
-                else if (mime.startsWith('video/')) stats.video.count++;
-                else stats.other.count++;
-            });
-
-            return Object.values(stats).filter(s => s.count > 0);
-        }
-    },
-    methods: {
-        hasFilesOfType(typePrefix) {
-            if (!this.task.attachments) return false;
-            return this.task.attachments.some(f => f.mime && f.mime.startsWith(typePrefix));
+                || (this.task.attachments?.length > 0);
         }
     }
 }
 </script>
 
 <style scoped>
-.task-preview-img {
-    width: 100%;
-    max-height: 120px;
-    object-fit: cover;
-    border-radius: 6px;
-    display: block;
+/* === БАЗОВЫЕ СТИЛИ КАРТОЧКИ === */
+.kanban-task {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    cursor: grab;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: visible;
 }
 
-.task-counters {
-    font-size: 11px;
-    color: #6c757d;
-    border-top-color: #e9ecef !important;
+.kanban-task:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: #dee2e6;
 }
 
-.task-counter {
-    display: inline-flex;
+.kanban-task:active {
+    cursor: grabbing;
+}
+
+/* === ШАПКА КАРТОЧКИ === */
+.card-header-custom {
+    display: flex;
     align-items: center;
-    gap: 3px;
-    color: #6c757d;
-    font-weight: 500;
+    gap: 10px;
+    padding: 10px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 0.375rem 0.375rem 0 0;
 }
 
-.task-counter i {
+/* Drag handle */
+.drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: #adb5bd;
+    cursor: grab;
+    transition: all 0.2s;
+    border-radius: 4px;
     flex-shrink: 0;
 }
 
-.task-counter .text-success {
-    color: #198754 !important;
-    font-weight: 600;
-}
-
-.subtasks-panel {
-    max-height: 150px;
-    overflow-y: auto;
-    border-top-color: #f1f3f5 !important;
-}
-
-.subtask-mini-item {
-    line-height: normal;
-}
-
-.subtask-bullet {
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    flex-shrink: 0;
-}
-
-.subtask-mini-text {
-    font-size: 11px;
+.drag-handle:hover {
+    background: #e9ecef;
     color: #495057;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+    background: #dee2e6;
+}
+
+.drag-handle i {
+    font-size: 14px;
+}
+
+/* Номер задачи */
+.task-number {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+    flex-grow: 1;
+}
+
+/* Dropdown wrapper */
+.task-dropdown-wrapper {
+    flex-shrink: 0;
+}
+
+/* === ТЕЛО КАРТОЧКИ === */
+.card-body-custom {
+    padding: 16px;
+}
+
+/* === АКЦЕНТ ДЛЯ КЛИЕНТА === */
+.card-accent {
+
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #0d6efd 0%, #0dcaf0 100%);
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.client-card {
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+}
+
+.client-card:hover {
+    background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+}
+
+.client-card .card-header-custom {
+    background: linear-gradient(135deg, #e7f1ff 0%, #f0f4ff 100%);
+}
+
+/* === НЕПРОСМОТРЕННАЯ КАРТОЧКА === */
+.unviewed-card {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+    border-color: #fecaca;
+}
+
+.unviewed-card:hover {
+    background: linear-gradient(135deg, #fee2e2 0%, #ffffff 100%);
+}
+
+.unviewed-card .card-header-custom {
+    background: linear-gradient(135deg, #ffe5e5 0%, #fff5f5 100%);
 }
 </style>

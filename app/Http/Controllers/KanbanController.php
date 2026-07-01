@@ -7,6 +7,7 @@ use App\Models\Board;
 use App\Models\Column;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -57,7 +58,6 @@ class KanbanController extends Controller
         }
 
 
-
         return $newTask->load('tags');
     }
 
@@ -88,7 +88,7 @@ class KanbanController extends Controller
             'title' => $request->title,
             'position' => $board->columns()->count(),
             'thread' => $board->columns()->count(),
-            'can_remove'=>true
+            'can_remove' => true
         ]);
     }
 
@@ -101,12 +101,10 @@ class KanbanController extends Controller
 
     public function deleteColumn(Column $column)
     {
-        if ($column->can_remove)
-        {
+        if ($column->can_remove) {
             $column->delete();
             return response()->json(['status' => 'ok']);
-        }
-        else
+        } else
             abort(400, 'Запрещено удаление, 400');
     }
 
@@ -115,25 +113,67 @@ class KanbanController extends Controller
         Log::info('storeTask called with UUID: ' . $uuid);
         Log::info('Request data: ' . json_encode($request->all()));
 
+        $data = $request->validate([
+            'title' => 'required|string',
+            'column_id' => 'required|exists:columns,id',
+            'type' => 'integer|in:1,2',
+            'priority' => 'nullable|string|in:low,medium,high', // ← Сделать nullable
+            'description' => 'nullable|string',
+            'due_date' => 'nullable|date',
+            'custom_data' => 'nullable|array', // ← НОВОЕ
+            'client' => 'array|required_if:type,2',
+            'client.company_name' => 'nullable|string',
+            'client.phone' => 'nullable|string',
+            'client.contact_person' => 'nullable|string',
+            'client.source' => 'nullable|string',
+            'client.address' => 'nullable|string',
+            'client.links' => 'nullable|array',
+            'client.deal_comment' => 'nullable|string',
+            'client.partner' => 'nullable|string',
+            'client.cost' => 'nullable|numeric',
+            'client.placement_type' => 'nullable|string',
+            'client.custom_data' => 'nullable|array', // ← НОВОЕ
+        ]);
+
         $board = Board::where('uuid', $uuid)->firstOrFail();
 
         // Сдвигаем все задачи вниз
         Task::where('column_id', $request->column_id)
             ->increment('position');
 
+        $maxPosition = Task::where('column_id', $data['column_id'])->max('position') ?? 0;
+
         $task = $board->tasks()->create([
             'column_id' => $request->column_id,
             'board_id' => $board->id,
             'title' => $request->title,
             'description' => $request->description,
-            'priority' => $request->priority,
+            'priority' => $data['priority'] ?? 'low', // ← Дефолтное значение
             'due_date' => $request->due_date,
             'labels' => $request->labels ?? [],
             'subtasks' => $request->subtasks ?? [],
+            'custom_data' => $data['custom_data'] ?? [], // ← НОВОЕ
             'position' => 0//Task::where('column_id', $request->column_id)->count()
         ]);
 
-        Log::info('web task create'.print_r([
+        if (($data['type'] ?? 1) === 2 && isset($data['client'])) {
+            $task->client()->create([
+                'company_name' => $data['client']['company_name'] ?? '',
+                'contact_person' => $data['client']['contact_person'] ?? '',
+                'phone' => $data['client']['phone'] ?? '',
+                'source' => $data['client']['source'] ?? '',
+                'address' => $data['client']['address'] ?? '',
+                'placement_type' => $data['client']['placement_type'] ?? '',
+                'cost' => $data['client']['cost'] ?? null,
+                'partner' => $data['client']['partner'] ?? '',
+                'deal_comment' => $data['client']['deal_comment'] ?? '',
+                'links' => $data['client']['links'] ?? [],
+                'custom_data' => $data['client']['custom_data'] ?? [], // ← НОВОЕ
+            ]);
+            $task->load('client'); // подгружаем обратно для ответа
+        }
+
+        Log::info('web task create' . print_r([
                 'column_id' => $request->column_id,
                 'title' => $request->title,
                 'board_id' => $board->id,
@@ -161,17 +201,76 @@ class KanbanController extends Controller
 
     public function updateTask(Request $request, Task $task)
     {
-        $task->update([
-            'column_id' => $request->column_id,
-            'title' => $request->title,
-            'description' => $request->description,
-            'priority' => $request->priority,
-            'due_date' => $request->due_date,
-            'labels' => $request->labels ?? [],
-            'subtasks' => $request->subtasks ?? []
-        ]);
-        $task->tags()->sync($request->tag_ids ?? []);
-        return $task->loadCount('comments');
+        $isClient = $request->type === 2;
+
+        $rules = [
+            'column_id' => 'required|exists:columns,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'nullable|string|in:low,medium,high',
+            'due_date' => 'nullable|date',
+            'labels' => 'nullable|array',
+            'subtasks' => 'nullable|array',
+            'tag_ids' => 'nullable|array',
+            'tag_ids.*' => 'exists:tags,id',
+            'custom_data' => 'nullable|array', // ← НОВОЕ
+        ];
+
+        if ($isClient) {
+            $rules['client'] = 'required|array';
+            $rules['client.company_name'] = 'nullable|string|max:255';
+            $rules['client.contact_person'] = 'nullable|string|max:255';
+            $rules['client.phone'] = 'nullable|string|max:50';
+            $rules['client.source'] = 'nullable|string|max:255';
+            $rules['client.address'] = 'nullable|string';
+            $rules['client.placement_type'] = 'nullable|string|max:255';
+            $rules['client.cost'] = 'nullable|numeric|min:0';
+            $rules['client.partner'] = 'nullable|string|max:255';
+            $rules['client.deal_comment'] = 'nullable|string';
+            $rules['client.links'] = 'nullable|array';
+            $rules['client.custom_data'] = 'nullable|array'; // ← НОВОЕ
+
+        }
+        $validated = $request->validate($rules);
+
+        return DB::transaction(function () use ($task, $validated, $isClient) {
+            // Обновляем задачу
+            $task->update([
+                'column_id' => $validated['column_id'],
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? '',
+                'priority' => $validated['priority'] ?? 'low',
+                'due_date' => $validated['due_date'] ?? null,
+                'labels' => $validated['labels'] ?? [],
+                'subtasks' => $validated['subtasks'] ?? [],
+                'custom_data' => $validated['custom_data'] ?? [], // ← НОВОЕ
+            ]);
+
+            // Синхронизируем теги
+            $task->tags()->sync($validated['tag_ids'] ?? []);
+
+            // Если это клиент — обновляем связанные данные
+            if ($isClient && isset($validated['client'])) {
+                // ⚠️ КЛЮЧЕВОЕ: принудительно перезагружаем клиента из БД перед обновлением
+                if (!$task->client) {
+                    $task->load('client');
+                }
+
+                if ($task->client) {
+                    // Перезагружаем клиента из БД, чтобы getDirty() видел реальные изменения
+                    $task->client->refresh();
+
+                    // Теперь обновляем — Laravel увидит реальные изменения
+                    $task->client->update($validated['client']);
+
+                    // Принудительно обновляем updated_at, даже если Laravel считает, что ничего не изменилось
+                    $task->client->touch();
+                }
+            }
+
+            // Перезагружаем всё с нуля из БД
+            return $task->refresh()->load(['tags', 'client', 'messages'])->loadCount('comments');
+        });
     }
 
     public function deleteTask(Task $task)
@@ -185,10 +284,10 @@ class KanbanController extends Controller
         $task = Task::find($request->task_id);
 
         if (is_null($task))
-            throw new \HttpException("Task Not Found",404);
+            throw new \HttpException("Task Not Found", 404);
 
         $task->update([
-            'column_id' => $request->to_column_id,
+            'column_id' => $request->to_column_id ?? $request->column_id,
             'position' => $request->position ?? 0
         ]);
 

@@ -20,7 +20,8 @@ class Task extends Model
         'subtasks',
         'type',
         'data',
-        'position'
+        'position',
+        'custom_data'
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class Task extends Model
         'data' => 'array',
         'subtasks' => 'array',
         'attachments' => 'array',
+        'custom_data' => 'array',
         'type' => 'integer',
         'board_id' => 'integer',
         'column_id' => 'integer',
@@ -35,12 +37,18 @@ class Task extends Model
         'last_viewed_at' => 'datetime'
     ];
 
-    protected $with=["tags","messages"];
+    protected $with=["tags","messages","client"];
 
     public function board()
     {
         return $this->belongsTo(Board::class);
     }
+
+    public function client()
+    {
+        return $this->hasOne(Client::class);
+    }
+
 
     public function column()
     {

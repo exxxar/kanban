@@ -2,7 +2,9 @@
     <div class="refresh-progress" :style="{ width: progress + '%' }"></div>
 
     <div class="d-flex flex-column min-vh-100">
-        <main class="flex-grow-1">
+
+
+        <main class="flex-grow-1 board-main">
             <KanbanBoard :initial-board="board"/>
         </main>
 
@@ -35,6 +37,10 @@
                 <p class="mb-1">© 2026 KanbanCRM. Все права защищены.</p>
                 <p class="small text-white mb-2">Сделано с <i class="fa-solid fa-heart text-danger"></i> в мире АйТи</p>
 
+                <!-- Онлайн пользователи -->
+               <div class="d-flex justify-content-center py-5">
+                   <OnlineUsers :board-uuid="board.uuid" />
+               </div>
                 <div class="mt-3 position-relative d-inline-block">
                     <button class="btn btn-secondary rounded-circle" style="width: 40px; height: 40px;" @click="showColorPicker = !showColorPicker" title="Выбрать цвет фона">
                         <i class="fa-solid fa-palette"></i>
@@ -158,13 +164,13 @@ import {useKanbanStore} from "@/stores/useKanbanStore.js";
 import {useBoardTemplateStore} from "@/stores/useBoardTemplateStore.js";
 import { ColorPicker } from "vue3-colorpicker";
 import "vue3-colorpicker/style.css";
-
+import OnlineUsers from '@/Components/Kanban/Online/OnlineUsers.vue'
 export default {
     props: {
         board: Object,
         vapidPublicKey: String
     },
-    components: {KanbanBoard, ColorPicker},
+    components: {KanbanBoard, ColorPicker, OnlineUsers},
     data() {
         return {
             store: useKanbanStore(),
@@ -241,6 +247,7 @@ export default {
     },
 
     methods: {
+
         applyBgColor(newColor) {
             localStorage.setItem('board_bg_color', newColor);
             document.body.style.setProperty('background', newColor, 'important');
@@ -330,16 +337,115 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
+    /* === ПРОГРЕСС-БАР === */
 .refresh-progress {
     position: fixed;
     top: 0;
     left: 0;
-    height: 3px;
-    background: #0d6efd; /* Bootstrap primary */
-    transition: width 0.1s linear;
+    height: 4px;
+    background: linear-gradient(90deg,
+    #667eea 0%,
+    #764ba2 25%,
+    #f093fb 50%,
+    #764ba2 75%,
+    #667eea 100%
+    );
+    background-size: 200% 100%;
+    animation: gradientShift 2s ease infinite;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5),
+    0 0 20px rgba(118, 75, 162, 0.3);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 9999;
+    overflow: hidden;
 }
+
+/* Эффект бегущей волны */
+.refresh-progress::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+    );
+    animation: wave 1.5s ease-in-out infinite;
+}
+
+/* Свечение в конце */
+.refresh-progress::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(240, 147, 251, 0.6) 50%,
+    transparent 100%
+    );
+    border-radius: 50%;
+    filter: blur(4px);
+    animation: glow 1s ease-in-out infinite alternate;
+}
+
+/* Анимация градиента */
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Анимация волны */
+@keyframes wave {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Анимация свечения */
+@keyframes glow {
+    0% {
+        opacity: 0.5;
+        transform: translateY(-50%) scale(1);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1.2);
+    }
+}
+
+/* Когда прогресс завершён */
+.refresh-progress.complete {
+    animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+        height: 4px;
+    }
+    100% {
+        opacity: 0;
+        height: 0;
+    }
+}
+
 
 .template-list {
     display: grid;
@@ -431,5 +537,13 @@ export default {
 .join-form .input-group {
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
+.board-main {
+    padding: 0;
+}
 
+@media (min-width: 768px) {
+    .board-main {
+        padding: 30px;
+    }
+}
 </style>

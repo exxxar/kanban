@@ -3,9 +3,11 @@
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ColumnController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\KanbanController;
+use App\Http\Controllers\OnlineController;
 use App\Http\Controllers\PushController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskAttachmentController;
@@ -36,10 +38,14 @@ Route::prefix('boards')->group(function () {
 
     Route::get('/choose-template', [HomeController::class, 'chooseTemplate']);
 
+
     Route::get('{uuid}', [KanbanController::class, 'getBoard']);
     // Обновить доску
     Route::put('{uuid}', [BoardController::class, 'update'])
         ->middleware('dispatch.board');
+
+    Route::get('{uuid}/lead-sources', [BoardController::class, 'getLeadSources']);
+
     // Создать доску
     Route::post('/', [KanbanController::class, 'createBoard']);
     // Экспорт доски
@@ -54,17 +60,20 @@ Route::prefix('boards')->group(function () {
     // Переупорядочивание колонок
     Route::put('{uuid}/columns/reorder', [ColumnController::class, 'reorder'])
         ->middleware('dispatch.board');
+    Route::get('/{uuid}/get', [BoardController::class, 'getBoard']);
     Route::post('/{uuid}/config', [BoardController::class, 'setConfig']);
     Route::post('/{uuid}/apply-template', [HomeController::class, 'applyTemplate']);
     Route::post('{uuid}/refresh-uuid', [BoardController::class, 'refreshUuid']);
 
 });
-
-
-Route::prefix('test')->group(function () {
-    Route::post('/card', [HomeController::class,'testCards']);
+Route::prefix('online')->group(function () {
+    Route::post('/heartbeat', [OnlineController::class, 'heartbeat']);
+    Route::get('/{board_uuid}', [OnlineController::class, 'getOnline']);
 });
 
+Route::prefix('test')->group(function () {
+    Route::post('/card', [HomeController::class, 'testCards']);
+});
 
 
 Route::prefix('cards')->group(function () {
@@ -119,6 +128,11 @@ Route::prefix('tasks')->group(function () {
 
 Route::prefix('tags')->group(function () {
     Route::delete('{tag}', [TagController::class, 'destroy']);
+});
+
+Route::prefix('clients')->group(function () {
+    Route::get('/{client}/activities', [ClientController::class, 'activities']);
+    Route::get('/{client}/export', [ClientController::class, 'export']);
 });
 
 Route::prefix('push')->group(function () {
