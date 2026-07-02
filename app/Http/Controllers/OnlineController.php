@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\OnlineUser;
 use Illuminate\Http\Request;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Jenssegers\Agent\Facades\Agent;
 
 class OnlineController extends Controller
 {
@@ -23,11 +22,10 @@ class OnlineController extends Controller
         $ipAddress = $request->ip();
         $userAgent = $request->userAgent();
 
-        Agent::setUserAgent($userAgent);
-
-        $deviceType = $this->detectDeviceType();
-        $browser = $this->detectBrowser();
-        $os = $this->detectOS();
+        // Ручной парсинг User-Agent
+        $deviceType = $this->detectDeviceType($userAgent);
+        $browser = $this->detectBrowser($userAgent);
+        $os = $this->detectOS($userAgent);
 
         $attributes = [
             'ip_address' => $ipAddress,
@@ -40,24 +38,20 @@ class OnlineController extends Controller
             'last_seen_at' => now(),
         ];
 
-        // === ПЫТАЕМСЯ ОБНОВИТЬ ИЛИ СОЗДАТЬ ===
         try {
             OnlineUser::updateOrCreate(
                 [
                     'session_id' => $sessionId,
-                    'board_uuid' => $boardUuid, // ← теперь ищем по двум полям
+                    'board_uuid' => $boardUuid,
                 ],
                 $attributes
             );
         } catch (UniqueConstraintViolationException $e) {
-            // Race condition: другой запрос уже создал запись
-            // Просто обновляем существующую
             OnlineUser::where('session_id', $sessionId)
                 ->where('board_uuid', $boardUuid)
                 ->update($attributes);
         }
 
-        // Чистим старые записи
         OnlineUser::cleanupOld(2);
 
         return response()->json([
@@ -89,47 +83,38 @@ class OnlineController extends Controller
         ]);
     }
 
-    private function detectDeviceType()
+    // === РУЧНОЙ ПАРСИНГ USER-AGENT ===
+
+    private function detectDeviceType($userAgent)
     {
-        if (Agent::isMobile()) return 'mobile';
-        if (Agent::isTablet()) return 'tablet';
-        if (Agent::isDesktop()) return 'desktop';
-        return 'other';
+        if (str_contains($userAgent, 'Mobile') || str_contains($userAgent, 'Android')) {
+            return 'mobile';
+        }
+        if (str_contains($userAgent, 'Tablet') || str_contains($userAgent, 'iPad')) {
+            return 'tablet';
+        }
+        return 'desktop';
     }
 
-    private function detectBrowser()
+    private function detectBrowser($userAgent)
     {
-        $browser = Agent::browser();
-
-        if (empty($browser) || $browser === 'Other') {
-            $userAgent = Agent::getUserAgent();
-            if (str_contains($userAgent, 'YaBrowser')) return 'Яндекс';
-            if (str_contains($userAgent, 'Edg')) return 'Edge';
-            if (str_contains($userAgent, 'OPR') || str_contains($userAgent, 'Opera')) return 'Opera';
-            if (str_contains($userAgent, 'Chrome')) return 'Chrome';
-            if (str_contains($userAgent, 'Firefox')) return 'Firefox';
-            if (str_contains($userAgent, 'Safari')) return 'Safari';
-            return 'Неизвестно';
-        }
-
-        return $browser;
+        if (str_contains($userAgent, 'YaBrowser')) return 'Яндекс';
+        if (str_contains($userAgent, 'Edg')) return 'Edge';
+        if (str_contains($userAgent, 'OPR') || str_contains($userAgent, 'Opera')) return 'Opera';
+        if (str_contains($userAgent, 'Chrome')) return 'Chrome';
+        if (str_contains($userAgent, 'Firefox')) return 'Firefox';
+        if (str_contains($userAgent, 'Safari')) return 'Safari';
+        return 'Другой';
     }
 
-    private function detectOS()
+    private function detectOS($userAgent)
     {
-        $platform = Agent::platform();
-
-        if (empty($platform) || $platform === 'Other') {
-            $userAgent = Agent::getUserAgent();
-            if (str_contains($userAgent, 'Windows')) return 'Windows';
-            if (str_contains($userAgent, 'Mac')) return 'macOS';
-            if (str_contains($userAgent, 'Linux')) return 'Linux';
-            if (str_contains($userAgent, 'Android')) return 'Android';
-            if (str_contains($userAgent, 'iOS') || str_contains($userAgent, 'iPhone') || str_contains($userAgent, 'iPad')) return 'iOS';
-            return 'Неизвестно';
-        }
-
-        return $platform;
+        if (str_contains($userAgent, 'Windows')) return 'Windows';
+        if (str_contains($userAgent, 'Mac')) return 'macOS';
+        if (str_contains($userAgent, 'Linux')) return 'Linux';
+        if (str_contains($userAgent, 'Android')) return 'Android';
+        if (str_contains($userAgent, 'iOS') || str_contains($userAgent, 'iPhone') || str_contains($userAgent, 'iPad')) return 'iOS';
+        return 'Другая';
     }
 
     private function maskIp($ip)
