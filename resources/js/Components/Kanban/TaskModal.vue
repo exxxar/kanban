@@ -148,7 +148,7 @@
                                 <label class="form-label-custom">Теги</label>
                                 <div class="tags-grid">
                                     <div
-                                        v-for="tag in [...store.tags, ...task.tags]"
+                                        v-for="tag in taskTags"
                                         :key="tag.id"
                                         class="tag-checkbox-wrapper"
                                     >
@@ -566,6 +566,25 @@ export default {
     data() {
         const store = useKanbanStore()
 
+        const local = this.task
+            ? {
+                ...this.task,
+                tag_ids: this.task.tags?.map(t => t.id) ?? [],
+                subtasks: this.task.subtasks ?? [],
+                custom_data: this.task.custom_data || {}
+            }
+            : {
+                title: '',
+                description: '',
+                priority: 'low',
+                due_date: '',
+                tag_ids: [],
+                labels: ['development'],
+                column_id: this.columnId,
+                subtasks: [],
+                custom_data: {}
+            }
+
         return {
             store,
             isVisible: false,
@@ -590,24 +609,7 @@ export default {
                 'Процессы': ['planning', 'meeting', 'training'],
                 'Другое': ['legal', 'hr', 'logistics', 'production']
             },
-            local: this.task
-                ? {
-                    ...this.task,
-                    tag_ids: this.task.tags?.map(t => t.id) ?? [],
-                    subtasks: this.task.subtasks ?? [],
-                    custom_data: this.task.custom_data || {}
-                }
-                : {
-                    title: '',
-                    description: '',
-                    priority: 'low',
-                    due_date: '',
-                    tag_ids: [],
-                    labels: ['development'],
-                    column_id: this.columnId,
-                    subtasks: [],
-                    custom_data: {}
-                },
+            local,
             newSubtask: '',
             newTagName: '',
             newTagColor: '#999999'
@@ -615,6 +617,9 @@ export default {
     },
 
     computed: {
+        taskTags() {
+            return [...(this.task?.tags || []), ...(this.store?.tags || [])]
+        },
         allCategories() {
             // Базовые категории + кастомные из конфига доски
             const baseCategories = Object.values(this.labelGroups).flat()
