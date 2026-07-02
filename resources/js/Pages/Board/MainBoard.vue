@@ -1,4 +1,5 @@
 <template>
+    <!-- Прогресс-бар обновления -->
     <div class="refresh-progress" :style="{ width: progress + '%' }"></div>
 
     <div class="d-flex flex-column min-vh-100">
@@ -9,6 +10,7 @@
         <!-- Footer -->
         <footer class="text-light py-4 mt-auto">
             <div class="container text-center">
+                <!-- Автообновление -->
                 <div class="d-flex justify-content-center my-3">
                     <div class="form-check form-switch">
                         <input
@@ -23,29 +25,63 @@
                     </div>
                 </div>
 
+                <!-- Лого -->
                 <h2 class="kanbancrm-logo mb-3">
                     <i class="fa-solid fa-layer-group me-2"></i>
                     KanbanCRM
                 </h2>
 
                 <p class="mb-1">© 2026 KanbanCRM. Все права защищены.</p>
-                <p class="small text-white mb-2">Сделано с <i class="fa-solid fa-heart text-danger"></i> в мире АйТи</p>
+                <p class="small text-white mb-2">
+                    Сделано с <i class="fa-solid fa-heart text-danger"></i> в мире АйТи
+                </p>
 
-                <div class="d-flex justify-content-center py-5">
+                <!-- Онлайн + Установка PWA -->
+                <div class="footer-actions-row">
                     <OnlineUsers :board-uuid="board.uuid" />
+
+                    <button
+                        v-if="canInstallPwa"
+                        class="btn-install-pwa"
+                        @click="showPwaModal = true"
+                        title="Установить приложение"
+                    >
+                        <i class="fa-solid fa-download"></i>
+                        <span>Установить приложение</span>
+                    </button>
                 </div>
 
+                <!-- Цвет фона -->
                 <div class="mt-3 position-relative d-inline-block">
-                    <button class="btn btn-secondary rounded-circle" style="width: 40px; height: 40px;" @click="showColorPicker = !showColorPicker" title="Выбрать цвет фона">
+                    <button
+                        class="btn btn-secondary rounded-circle"
+                        style="width: 40px; height: 40px;"
+                        @click="showColorPicker = !showColorPicker"
+                        title="Выбрать цвет фона"
+                    >
                         <i class="fa-solid fa-palette"></i>
                     </button>
-                    <div v-show="showColorPicker" class="position-absolute bg-white p-2 rounded shadow" style="bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 1050; min-width: 260px;">
+                    <div
+                        v-show="showColorPicker"
+                        class="position-absolute bg-white p-2 rounded shadow"
+                        style="bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 1050; min-width: 260px;"
+                    >
                         <ul class="nav nav-pills nav-fill mb-2">
                             <li class="nav-item">
-                                <a class="nav-link py-1 px-2" style="font-size: 14px; cursor: pointer;" :class="{active: bgMode === 'solid'}" @click.prevent="bgMode = 'solid'">Сплошной</a>
+                                <a
+                                    class="nav-link py-1 px-2"
+                                    style="font-size: 14px; cursor: pointer;"
+                                    :class="{active: bgMode === 'solid'}"
+                                    @click.prevent="bgMode = 'solid'"
+                                >Сплошной</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link py-1 px-2" style="font-size: 14px; cursor: pointer;" :class="{active: bgMode === 'gradient'}" @click.prevent="bgMode = 'gradient'">Градиент</a>
+                                <a
+                                    class="nav-link py-1 px-2"
+                                    style="font-size: 14px; cursor: pointer;"
+                                    :class="{active: bgMode === 'gradient'}"
+                                    @click.prevent="bgMode = 'gradient'"
+                                >Градиент</a>
                             </li>
                         </ul>
                         <div v-show="bgMode === 'solid'">
@@ -62,7 +98,12 @@
 
     <!-- === МОДАЛКА ВЫБОРА ШАБЛОНА === -->
     <Transition name="modal-fade">
-        <div v-if="showTemplateModal" class="modal-overlay" @click.self="closeTemplateModal" @keydown.esc="closeTemplateModal">
+        <div
+            v-if="showTemplateModal"
+            class="modal-overlay"
+            @click.self="closeTemplateModal"
+            @keydown.esc="closeTemplateModal"
+        >
             <div class="modal-window template-modal">
                 <!-- HEADER -->
                 <div class="modal-header-custom">
@@ -72,7 +113,7 @@
                         </div>
                         <div class="header-text">
                             <h3 class="modal-title-text">Выберите шаблон доски</h3>
-                            <p class="modal-subtitle">Начните с готового решения или создайте свою доску</p>
+                            <p class="modal-subtitle">Начните с готового решения или подключите существующую доску</p>
                         </div>
                     </div>
                 </div>
@@ -85,7 +126,6 @@
                             v-for="tpl in templateStore.templates"
                             :key="tpl.id"
                             class="template-card"
-                            :class="{ loading: templateStore.loading }"
                             :disabled="templateStore.loading"
                             @click="selectTemplate(tpl.id)"
                         >
@@ -148,7 +188,10 @@
                                         <i v-else class="fa-solid fa-arrow-right"></i>
                                     </button>
                                 </div>
-                                <button class="join-cancel" @click="showJoinInput = false; joinKey = ''">
+                                <button
+                                    class="join-cancel"
+                                    @click="showJoinInput = false; joinKey = ''"
+                                >
                                     <i class="fa-solid fa-xmark"></i>
                                     Отмена
                                 </button>
@@ -162,7 +205,12 @@
 
     <!-- === МОДАЛКА УСТАНОВКИ PWA === -->
     <Transition name="modal-fade">
-        <div v-if="showPwaModal" class="modal-overlay" @click.self="closePwaModal" @keydown.esc="closePwaModal">
+        <div
+            v-if="showPwaModal"
+            class="modal-overlay"
+            @click.self="closePwaModal"
+            @keydown.esc="closePwaModal"
+        >
             <div class="modal-window pwa-modal">
                 <!-- HEADER -->
                 <div class="modal-header-custom pwa-header">
@@ -182,7 +230,6 @@
 
                 <!-- BODY -->
                 <div class="modal-body-custom">
-                    <!-- Описание -->
                     <p class="pwa-description">
                         Установите KanbanCRM как приложение и работайте с доской прямо с рабочего стола —
                         быстрее, удобнее, без лишних вкладок.
@@ -262,6 +309,7 @@ export default {
         vapidPublicKey: String
     },
     components: { KanbanBoard, ColorPicker, OnlineUsers },
+
     data() {
         return {
             store: useKanbanStore(),
@@ -283,8 +331,23 @@ export default {
             // Цвет фона
             showColorPicker: false,
             bgMode: (localStorage.getItem('board_bg_color') || '').includes('gradient') ? 'gradient' : 'solid',
-            solidColor: (!((localStorage.getItem('board_bg_color') || '').includes('gradient'))) ? (localStorage.getItem('board_bg_color') || '#4f46e5') : '#4f46e5',
-            gradientColor: ((localStorage.getItem('board_bg_color') || '').includes('gradient')) ? localStorage.getItem('board_bg_color') : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            solidColor: (!((localStorage.getItem('board_bg_color') || '').includes('gradient')))
+                ? (localStorage.getItem('board_bg_color') || '#4f46e5')
+                : '#4f46e5',
+            gradientColor: ((localStorage.getItem('board_bg_color') || '').includes('gradient'))
+                ? localStorage.getItem('board_bg_color')
+                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        }
+    },
+
+    computed: {
+        canInstallPwa() {
+            return (
+                'serviceWorker' in navigator &&
+                'BeforeInstallPromptEvent' in window &&
+                !window.matchMedia('(display-mode: standalone)').matches &&
+                window.deferredPWAInstall
+            )
         }
     },
 
@@ -300,7 +363,7 @@ export default {
             if (newMode === 'gradient') this.applyBgColor(this.gradientColor)
         },
         'need_request_updates': {
-            handler(newData) {
+            handler() {
                 if (this.need_request_updates) {
                     this.updateTimer()
                 } else {
@@ -322,12 +385,8 @@ export default {
             this.showTemplateModal = true
         }
 
-        // Предложить установку PWA через 5 секунд
-        if (window.deferredPWAInstall) {
-            setTimeout(() => {
-                this.showPwaModal = true
-            }, 5000)
-        }
+        // Проверяем возможность установки PWA
+        this.checkPwaInstall()
 
         this.initPush()
 
@@ -343,11 +402,13 @@ export default {
     },
 
     methods: {
+        // === ЦВЕТ ФОНА ===
         applyBgColor(newColor) {
             localStorage.setItem('board_bg_color', newColor)
             document.body.style.setProperty('background', newColor, 'important')
         },
 
+        // === ТАЙМЕР ОБНОВЛЕНИЯ ===
         updateTimer() {
             this.progress = 0
             clearInterval(this.progressTimer)
@@ -374,22 +435,56 @@ export default {
         },
 
         closeTemplateModal() {
-            // Не закрываем, если колонок нет — пользователь должен выбрать
+            // Не даём закрыть, если колонок нет
             if (!this.board.columns || this.board.columns.length === 0) return
             this.showTemplateModal = false
         },
 
         // === PWA ===
+        checkPwaInstall() {
+            if (!('serviceWorker' in navigator) || !('BeforeInstallPromptEvent' in window)) {
+                return
+            }
+
+            // Уже установлено
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                return
+            }
+
+            // Отклоняли недавно
+            const dismissed = localStorage.getItem('pwa_install_dismissed')
+            if (dismissed) {
+                const daysSinceDismissed = (Date.now() - parseInt(dismissed)) / (1000 * 60 * 60 * 24)
+                if (daysSinceDismissed < 7) return
+            }
+
+            // Ждём событие beforeinstallprompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault()
+                window.deferredPWAInstall = e
+
+                // Показываем модалку через 5 секунд
+                setTimeout(() => {
+                    this.showPwaModal = true
+                }, 5000)
+            })
+        },
+
         installPWA() {
-            if (window.installPWA) {
-                window.installPWA()
+            if (window.deferredPWAInstall) {
+                window.deferredPWAInstall.prompt()
+                window.deferredPWAInstall.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installed')
+                    }
+                    window.deferredPWAInstall = null
+                })
             }
             this.closePwaModal()
         },
 
         closePwaModal() {
             this.showPwaModal = false
-            // Запоминаем, что пользователь отклонил
             localStorage.setItem('pwa_install_dismissed', Date.now().toString())
         },
 
@@ -493,15 +588,6 @@ export default {
     100% { opacity: 1; transform: translateY(-50%) scale(1.2); }
 }
 
-.refresh-progress.complete {
-    animation: fadeOut 0.5s ease forwards;
-}
-
-@keyframes fadeOut {
-    0% { opacity: 1; height: 4px; }
-    100% { opacity: 0; height: 0; }
-}
-
 /* === OVERLAY === */
 .modal-overlay {
     position: fixed;
@@ -528,13 +614,8 @@ export default {
     overflow: hidden;
 }
 
-.template-modal {
-    width: 720px;
-}
-
-.pwa-modal {
-    width: 560px;
-}
+.template-modal { width: 720px; }
+.pwa-modal { width: 560px; }
 
 @keyframes modalSlideUp {
     from { opacity: 0; transform: translateY(30px) scale(0.95); }
@@ -1088,26 +1169,41 @@ export default {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
-/* === АНИМАЦИИ === */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-    transition: opacity 0.3s ease;
+/* === FOOTER ACTIONS ROW === */
+.footer-actions-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 0;
+    flex-wrap: wrap;
 }
 
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-    opacity: 0;
+.btn-install-pwa {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
 }
 
-.fade-enter-active,
-.fade-leave-active {
-    transition: all 0.25s ease;
+.btn-install-pwa:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-    transform: translateY(-8px);
+.btn-install-pwa i {
+    font-size: 14px;
 }
 
 /* === ЛОГО === */
@@ -1132,6 +1228,28 @@ export default {
     .board-main {
         padding: 30px;
     }
+}
+
+/* === АНИМАЦИИ === */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+    opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: all 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
 }
 
 /* === АДАПТИВ === */
