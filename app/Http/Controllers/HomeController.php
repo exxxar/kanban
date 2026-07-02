@@ -108,7 +108,14 @@ class HomeController extends Controller
     private function generateTasks(Board $board, array $columns, array $gen)
     {
         [$min, $max] = $gen['tasks_per_column'] ?? [2, 5];
-        $isCrmTemplate = !empty($gen['clients']);
+
+        // Определяем процент клиентов
+        $clientRatio = $gen['client_ratio'] ?? 0;
+
+        // Если указан флаг clients=true и ratio не задан — 100% клиенты (CRM режим)
+        if (!empty($gen['clients']) && !isset($gen['client_ratio'])) {
+            $clientRatio = 100;
+        }
 
         foreach ($columns as $columnTitle => $column) {
             $config = $gen['columns'][$columnTitle] ?? [];
@@ -149,12 +156,14 @@ class HomeController extends Controller
                     }
                 }
 
-                // === СОЗДАНИЕ ЗАДАЧИ ===
-                if ($isCrmTemplate) {
-                    // Для CRM — создаём клиента
+                // === ОПРЕДЕЛЕНИЕ ТИПА КАРТОЧКИ ===
+                $shouldBeClient = rand(1, 100) <= $clientRatio;
+
+                if ($shouldBeClient) {
+                    // Создаём клиента
                     $task = $this->createClientTask($board, $column, $title, $description, $labels, $subtasks, $gen);
                 } else {
-                    // Обычная задача
+                    // Создаём обычную задачу
                     $task = $column->tasks()->create([
                         'title' => $title,
                         'description' => $description,
@@ -164,6 +173,7 @@ class HomeController extends Controller
                         'subtasks' => $subtasks,
                         'attachments' => $attachments,
                         'data' => $data,
+                        'custom_data' => [],
                         'position' => $i,
                         'board_id' => $board->id,
                         'due_date' => now()->addDays(rand(0, 5)),
@@ -194,7 +204,7 @@ class HomeController extends Controller
         $service = collect($gen['client_services'] ?? ['Стандарт'])->random();
         $cost = rand(5, 200) * 1000;
 
-        // Кастомные данные клиента
+        // Кастомные данные клиента из конфига доски
         $clientCustomData = $this->generateClientCustomData($board);
 
         // Создаём задачу-клиента
@@ -203,8 +213,9 @@ class HomeController extends Controller
             'description' => $description ?? "Клиент: {$companyName}",
             'priority' => collect($gen['priorities'] ?? ['low'])->random(),
             'type' => 2, // Клиент
-            'labels' => array_merge($labels, ['client']),
+            'labels' => array_unique(array_merge($labels, ['client'])),
             'subtasks' => $subtasks,
+            'custom_data' => [],
             'position' => $column->tasks()->count(),
             'board_id' => $board->id,
             'due_date' => now()->addDays(rand(1, 14)),
@@ -224,13 +235,13 @@ class HomeController extends Controller
             'deal_comment' => rand(0, 1) ? $faker->sentence(10) : null,
             'links' => rand(0, 1) ? [
                 ['url' => 'https://' . $faker->domainName(), 'title' => 'Сайт компании'],
+                ['url' => 'https://vk.com/' . $faker->userName(), 'title' => 'ВКонтакте'],
             ] : [],
             'custom_data' => $clientCustomData,
         ]);
 
         return $task;
     }
-
     /**
      * Генерация кастомных данных клиента из конфига доски
      */

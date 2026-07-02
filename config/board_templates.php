@@ -393,6 +393,9 @@ return [
                 ['name' => 'test_image_1.jpg', 'path' => 'test_image_1.jpg', 'size' => 0, 'mime' => 'image/jpg'],
                 ['name' => 'test_image_2.jpg', 'path' => 'test_image_2.jpg', 'mime' => 'image/jpg', 'size' => 0],
             ],
+            'client_ratio' => 20,           // ← 20% клиентов
+            'client_sources' => ['Сайт', 'Приложение', 'Телефон'],
+            'client_services' => ['Доставка', 'Самовывоз', 'Зал'],
             'columns' => [
                 'Отзывы' => [
                     'titles' => ['Отзыв #{n}'],
@@ -438,6 +441,7 @@ return [
             'tasks_per_column' => [2, 5],
             'priorities' => ['low', 'medium', 'high'],
             'labels' => ['Срочно', 'Гарантия', 'Повторное', 'VIP'],
+            'client_ratio' => 30,
             'columns' => [
                 'Диагностика' => [
                     'titles' => ['Авто #{n}', 'ТО #{n}', 'Ремонт #{n}'],
