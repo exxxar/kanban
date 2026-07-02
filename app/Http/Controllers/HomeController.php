@@ -71,8 +71,15 @@ class HomeController extends Controller
 
         $tpl = $templates[$request->template];
 
-        $createdColumns = [];
+        // === ПРИМЕНЕНИЕ НАСТРОЕК ДОСКИ (config) ===
+        if (!empty($tpl['config'])) {
+            $board->update([
+                'config' => array_merge($board->config ?? [], $tpl['config'])
+            ]);
+        }
 
+        // === СОЗДАНИЕ КОЛОНОК ===
+        $createdColumns = [];
 
         foreach ($tpl['columns'] as $index => $title) {
             $column = $board->columns()->create([
@@ -84,59 +91,75 @@ class HomeController extends Controller
             $createdColumns[$title] = $column;
         }
 
+        // === ГЕНЕРАЦИЯ ЗАДАЧ И КЛИЕНТОВ ===
         if (!empty($tpl['generate'])) {
+            $this->generateTasks($board, $createdColumns, $tpl['generate']);
+        }
 
-            $gen = $tpl['generate'];
+        return response()->json([
+            'status' => 'ok',
+            'board' => $board->load('columns.tasks')
+        ]);
+    }
 
-            [$min, $max] = $gen['tasks_per_column'] ?? [2, 5];
+    /**
+     * Генерация задач и клиентов по шаблону
+     */
+    private function generateTasks(Board $board, array $columns, array $gen)
+    {
+        [$min, $max] = $gen['tasks_per_column'] ?? [2, 5];
+        $isCrmTemplate = !empty($gen['clients']);
 
-            foreach ($createdColumns as $columnTitle => $column) {
+        foreach ($columns as $columnTitle => $column) {
+            $config = $gen['columns'][$columnTitle] ?? [];
+            $count = rand($min, $max);
 
-                $config = $gen['columns'][$columnTitle] ?? [];
-                $count = rand($min, $max);
+            for ($i = 0; $i < $count; $i++) {
+                $n = rand(1000, 9999);
 
-                for ($i = 0; $i < $count; $i++) {
+                // Title
+                $titleTpl = collect($config['titles'] ?? ['Задача #{n}'])->random();
+                $title = str_replace('{n}', $n, $titleTpl);
 
-                    $n = rand(1000, 9999);
+                // Description
+                $description = collect($config['descriptions'] ?? [null])->random();
 
-                    // title
-                    $titleTpl = collect($config['titles'] ?? ['Задача #{n}'])->random();
-                    $title = str_replace('{n}', $n, $titleTpl);
+                // Labels
+                $labels = collect($gen['labels'] ?? [])
+                    ->random(rand(0, 2))
+                    ->values()
+                    ->toArray();
 
-                    // description
-                    $description = collect($config['descriptions'] ?? [null])->random();
+                // Subtasks
+                $subtasks = collect($config['subtasks'] ?? [])
+                    ->map(fn($s) => [
+                        'text' => $s,
+                        'done' => (bool)rand(0, 1),
+                    ])
+                    ->toArray();
 
-                    // labels
-                    $labels = collect($gen['labels'] ?? [])
-                        ->random(rand(0, 2))
-                        ->values()
-                        ->toArray();
+                // Attachments
+                $attachments = rand(0, 1) ? ($gen['attachments'] ?? []) : [];
 
-                    // subtasks
-                    $subtasks = collect($config['subtasks'] ?? [])
-                        ->map(fn($s) => [
-                            'text' => $s,
-                            'done' => (bool)rand(0, 1),
-                        ])
-                        ->toArray();
-
-                    // attachments
-                    $attachments = rand(0, 1)
-                        ? ($gen['attachments'] ?? [])
-                        : [];
-
-                    // data (кастомные поля)
-                    $data = [];
-                    if (!empty($config['data'])) {
-                        foreach ($config['data'] as $key => $values) {
-                            $data[$key] = collect($values)->random();
-                        }
+                // Custom data
+                $data = [];
+                if (!empty($config['data'])) {
+                    foreach ($config['data'] as $key => $values) {
+                        $data[$key] = collect($values)->random();
                     }
+                }
 
+                // === СОЗДАНИЕ ЗАДАЧИ ===
+                if ($isCrmTemplate) {
+                    // Для CRM — создаём клиента
+                    $task = $this->createClientTask($board, $column, $title, $description, $labels, $subtasks, $gen);
+                } else {
+                    // Обычная задача
                     $task = $column->tasks()->create([
                         'title' => $title,
                         'description' => $description,
                         'priority' => collect($gen['priorities'] ?? ['low'])->random(),
+                        'type' => 1,
                         'labels' => $labels,
                         'subtasks' => $subtasks,
                         'attachments' => $attachments,
@@ -146,53 +169,171 @@ class HomeController extends Controller
                         'due_date' => now()->addDays(rand(0, 5)),
                         'last_viewed_at' => now()->subMinutes(rand(0, 500)),
                     ]);
+                }
 
-                    // сообщения
-                    if (!empty($config['messages'])) {
-
-                        $messagesCount = rand(1, 4);
-
-                        for ($m = 0; $m < $messagesCount; $m++) {
-
-                            $isClient = rand(0, 1);
-
-                            $task->messages()->create([
-                                'sender_type' => $isClient ? 'external' : 'manager',
-                                'sender_label' => $isClient
-                                    ? 'Клиент ' . rand(1000, 9999)
-                                    : 'Менеджер',
-                                'message' => $this->fakeMessage($columnTitle),
-                                'is_read' => (bool)rand(0, 1),
-                            ]);
-                        }
-                    }
+                // Сообщения
+                if (!empty($config['messages'])) {
+                    $this->generateMessages($task, $columnTitle);
                 }
             }
         }
-
-        return response()->json(['status' => 'ok']);
     }
 
-    private function fakeMessage($column)
+    /**
+     * Создание задачи-клиента с данными клиента
+     */
+    private function createClientTask(Board $board, Column $column, string $title, ?string $description, array $labels, array $subtasks, array $gen)
     {
-        $map = [
+        $faker = \Faker\Factory::create('ru_RU');
+
+        // Генерируем данные клиента
+        $companyName = $faker->company();
+        $contactPerson = $faker->name();
+        $phone = '+7' . $faker->numerify('9#########');
+        $source = collect($gen['client_sources'] ?? ['Сайт'])->random();
+        $service = collect($gen['client_services'] ?? ['Стандарт'])->random();
+        $cost = rand(5, 200) * 1000;
+
+        // Кастомные данные клиента
+        $clientCustomData = $this->generateClientCustomData($board);
+
+        // Создаём задачу-клиента
+        $task = $column->tasks()->create([
+            'title' => $title ?: $companyName,
+            'description' => $description ?? "Клиент: {$companyName}",
+            'priority' => collect($gen['priorities'] ?? ['low'])->random(),
+            'type' => 2, // Клиент
+            'labels' => array_merge($labels, ['client']),
+            'subtasks' => $subtasks,
+            'position' => $column->tasks()->count(),
+            'board_id' => $board->id,
+            'due_date' => now()->addDays(rand(1, 14)),
+            'last_viewed_at' => now()->subMinutes(rand(0, 500)),
+        ]);
+
+        // Создаём связанного клиента
+        $task->client()->create([
+            'company_name' => $companyName,
+            'contact_person' => $contactPerson,
+            'phone' => $phone,
+            'source' => $source,
+            'address' => $faker->address(),
+            'placement_type' => $service,
+            'cost' => $cost,
+            'partner' => rand(0, 1) ? $faker->name() : null,
+            'deal_comment' => rand(0, 1) ? $faker->sentence(10) : null,
+            'links' => rand(0, 1) ? [
+                ['url' => 'https://' . $faker->domainName(), 'title' => 'Сайт компании'],
+            ] : [],
+            'custom_data' => $clientCustomData,
+        ]);
+
+        return $task;
+    }
+
+    /**
+     * Генерация кастомных данных клиента из конфига доски
+     */
+    private function generateClientCustomData(Board $board): array
+    {
+        $customData = [];
+        $customFields = $board->config['custom_fields'] ?? [];
+
+        foreach ($customFields as $section) {
+            if (($section['target'] ?? '') !== 'client') continue;
+
+            foreach ($section['fields'] ?? [] as $field) {
+                $name = $field['name'] ?? '';
+                $type = $field['type'] ?? 'text';
+
+                if (!$name) continue;
+
+                $customData[$name] = $this->generateFieldValue($type);
+            }
+        }
+
+        return $customData;
+    }
+
+    /**
+     * Генерация значения поля по типу
+     */
+    private function generateFieldValue(string $type)
+    {
+        $faker = \Faker\Factory::create('ru_RU');
+
+        return match ($type) {
+            'text' => $faker->words(3, true),
+            'number' => rand(100, 100000),
+            'date' => now()->addDays(rand(1, 60))->format('Y-m-d'),
+            'email' => $faker->safeEmail(),
+            'url' => 'https://' . $faker->domainName(),
+            'textarea' => $faker->paragraphs(2, true),
+            default => null,
+        };
+    }
+
+    /**
+     * Генерация сообщений для задачи
+     */
+    private function generateMessages(Task $task, string $columnTitle): void
+    {
+        $messagesCount = rand(1, 4);
+
+        for ($m = 0; $m < $messagesCount; $m++) {
+            $isClient = rand(0, 1);
+
+            $task->messages()->create([
+                'sender_type' => $isClient ? 'external' : 'manager',
+                'sender_label' => $isClient
+                    ? 'Клиент ' . rand(1000, 9999)
+                    : 'Менеджер',
+                'message' => $this->fakeMessage($columnTitle),
+                'is_read' => (bool)rand(0, 1),
+            ]);
+        }
+    }
+
+    /**
+     * Генерация фейкового сообщения
+     */
+    private function fakeMessage(string $columnTitle): string
+    {
+        $messages = [
             'Отзывы' => [
-                'Почему нет соуса?',
-                'Все было вкусно, спасибо!',
-                'Очень долго ждал заказ',
+                'Спасибо за обслуживание!',
+                'Не доволен качеством',
+                'Когда решите проблему?',
+            ],
+            'Заказы' => [
+                'Заказ принят',
+                'Когда будет готов?',
+                'Хочу изменить заказ',
             ],
             'Доставка' => [
-                'Курьер уже рядом?',
-                'Я жду заказ',
+                'Курьер выехал',
+                'Задерживается доставка',
+                'Доставлено',
             ],
             'Обратная связь' => [
-                'Хочу оформить возврат',
+                'Хочу вернуть деньги',
                 'Ошибка в заказе',
+                'Спасибо за помощь',
+            ],
+            'default' => [
+                'Здравствуйте!',
+                'Подскажите, пожалуйста',
+                'Спасибо за ответ',
+                'Когда будет готово?',
+                'Нужна дополнительная информация',
             ],
         ];
 
-        return collect($map[$column] ?? ['Ок'])->random();
+        $pool = $messages[$columnTitle] ?? $messages['default'];
+        return collect($pool)->random();
     }
+
+
 
     public function testCards(Request $request)
     {
