@@ -182,17 +182,11 @@ class HomeController extends Controller
         }
     }
 
-    /**
-     * Генерация задач и клиентов по шаблону
-     */
     private function generateTasks(Board $board, array $columns, array $gen)
     {
         [$min, $max] = $gen['tasks_per_column'] ?? [2, 5];
 
-        // Определяем процент клиентов
         $clientRatio = $gen['client_ratio'] ?? 0;
-
-        // Если указан флаг clients=true и ratio не задан — 100% клиенты (CRM режим)
         if (!empty($gen['clients']) && !isset($gen['client_ratio'])) {
             $clientRatio = 100;
         }
@@ -205,15 +199,17 @@ class HomeController extends Controller
                 $n = rand(1000, 9999);
 
                 // Title
-                $titleTpl = collect($config['titles'] ?? ['Задача #{n}'])->random();
+                $titleTpl = $this->safeRandom($config['titles'] ?? ['Задача #{n}']);
                 $title = str_replace('{n}', $n, $titleTpl);
 
                 // Description
-                $description = collect($config['descriptions'] ?? [null])->random();
+                $description = $this->safeRandom($config['descriptions'] ?? [null]);
 
-                // Labels
-                $labels = collect($gen['labels'] ?? [])
-                    ->random(rand(0, 2))
+                // Labels — ограничиваем количеством доступных
+                $labelsPool = $gen['labels'] ?? [];
+                $labelsCount = min(rand(0, 2), count($labelsPool));
+                $labels = collect($labelsPool)
+                    ->random($labelsCount)
                     ->values()
                     ->toArray();
 
@@ -232,22 +228,20 @@ class HomeController extends Controller
                 $data = [];
                 if (!empty($config['data'])) {
                     foreach ($config['data'] as $key => $values) {
-                        $data[$key] = collect($values)->random();
+                        $data[$key] = $this->safeRandom($values);
                     }
                 }
 
-                // === ОПРЕДЕЛЕНИЕ ТИПА КАРТОЧКИ ===
+                // Определение типа карточки
                 $shouldBeClient = rand(1, 100) <= $clientRatio;
 
                 if ($shouldBeClient) {
-                    // Создаём клиента
                     $task = $this->createClientTask($board, $column, $title, $description, $labels, $subtasks, $gen);
                 } else {
-                    // Создаём обычную задачу
                     $task = $column->tasks()->create([
                         'title' => $title,
                         'description' => $description,
-                        'priority' => collect($gen['priorities'] ?? ['low'])->random(),
+                        'priority' => $this->safeRandom($gen['priorities'] ?? ['low']),
                         'type' => 1,
                         'labels' => $labels,
                         'subtasks' => $subtasks,
@@ -270,29 +264,33 @@ class HomeController extends Controller
     }
 
     /**
-     * Создание задачи-клиента с данными клиента
+     * Безопасный random — не запрашивает больше элементов, чем есть
      */
+    private function safeRandom(array $items)
+    {
+        if (empty($items)) return null;
+
+        return collect($items)->random(1)->first();
+    }
+
     private function createClientTask(Board $board, Column $column, string $title, ?string $description, array $labels, array $subtasks, array $gen)
     {
         $faker = \Faker\Factory::create('ru_RU');
 
-        // Генерируем данные клиента
         $companyName = $faker->company();
         $contactPerson = $faker->name();
         $phone = '+7' . $faker->numerify('9#########');
-        $source = collect($gen['client_sources'] ?? ['Сайт'])->random();
-        $service = collect($gen['client_services'] ?? ['Стандарт'])->random();
+        $source = $this->safeRandom($gen['client_sources'] ?? ['Сайт']);
+        $service = $this->safeRandom($gen['client_services'] ?? ['Стандарт']);
         $cost = rand(5, 200) * 1000;
 
-        // Кастомные данные клиента из конфига доски
         $clientCustomData = $this->generateClientCustomData($board);
 
-        // Создаём задачу-клиента
         $task = $column->tasks()->create([
             'title' => $title ?: $companyName,
             'description' => $description ?? "Клиент: {$companyName}",
-            'priority' => collect($gen['priorities'] ?? ['low'])->random(),
-            'type' => 2, // Клиент
+            'priority' => $this->safeRandom($gen['priorities'] ?? ['low']),
+            'type' => 2,
             'labels' => array_unique(array_merge($labels, ['client'])),
             'subtasks' => $subtasks,
             'custom_data' => [],
@@ -302,7 +300,6 @@ class HomeController extends Controller
             'last_viewed_at' => now()->subMinutes(rand(0, 500)),
         ]);
 
-        // Создаём связанного клиента
         $task->client()->create([
             'company_name' => $companyName,
             'contact_person' => $contactPerson,
@@ -315,7 +312,6 @@ class HomeController extends Controller
             'deal_comment' => rand(0, 1) ? $faker->sentence(10) : null,
             'links' => rand(0, 1) ? [
                 ['url' => 'https://' . $faker->domainName(), 'title' => 'Сайт компании'],
-                ['url' => 'https://vk.com/' . $faker->userName(), 'title' => 'ВКонтакте'],
             ] : [],
             'custom_data' => $clientCustomData,
         ]);

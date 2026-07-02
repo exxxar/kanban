@@ -947,6 +947,8 @@ export default {
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     overflow-x: auto;
+
+    min-height: 85px;
 }
 
 .tab-btn {

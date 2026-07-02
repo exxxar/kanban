@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\OnlineUser;
 use Illuminate\Http\Request;
-use Jensseitors\Agent\Facades\Agent;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Jenssegers\Agent\Facades\Agent;
 
 class OnlineController extends Controller
 {
-    // Heartbeat — обновление статуса онлайн
     public function heartbeat(Request $request)
     {
         $request->validate([
@@ -23,30 +23,41 @@ class OnlineController extends Controller
         $ipAddress = $request->ip();
         $userAgent = $request->userAgent();
 
-        // Определяем устройство, браузер, ОС
-        $deviceType = $this->detectDeviceType($userAgent);
-        $browser = $this->detectBrowser($userAgent);
-        $os = $this->detectOS($userAgent);
+        Agent::setUserAgent($userAgent);
 
-        // Обновляем или создаём запись
-        OnlineUser::updateOrCreate(
-            [
-                'session_id' => $sessionId,
-                'board_uuid' => $boardUuid
-            ],
-            [
-                'ip_address' => $ipAddress,
-                'user_agent' => $userAgent,
-                'device_type' => $deviceType,
-                'browser' => $browser,
-                'os' => $os,
-                'screen_resolution' => $request->screen_resolution,
-                'canvas_hash' => $request->canvas_hash,
-                'last_seen_at' => now()
-            ]
-        );
+        $deviceType = $this->detectDeviceType();
+        $browser = $this->detectBrowser();
+        $os = $this->detectOS();
 
-        // Очищаем старые записи
+        $attributes = [
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent,
+            'device_type' => $deviceType,
+            'browser' => $browser,
+            'os' => $os,
+            'screen_resolution' => $request->screen_resolution,
+            'canvas_hash' => $request->canvas_hash,
+            'last_seen_at' => now(),
+        ];
+
+        // === ПЫТАЕМСЯ ОБНОВИТЬ ИЛИ СОЗДАТЬ ===
+        try {
+            OnlineUser::updateOrCreate(
+                [
+                    'session_id' => $sessionId,
+                    'board_uuid' => $boardUuid, // ← теперь ищем по двум полям
+                ],
+                $attributes
+            );
+        } catch (UniqueConstraintViolationException $e) {
+            // Race condition: другой запрос уже создал запись
+            // Просто обновляем существующую
+            OnlineUser::where('session_id', $sessionId)
+                ->where('board_uuid', $boardUuid)
+                ->update($attributes);
+        }
+
+        // Чистим старые записи
         OnlineUser::cleanupOld(2);
 
         return response()->json([
@@ -55,13 +66,10 @@ class OnlineController extends Controller
         ]);
     }
 
-    // Получение списка онлайн пользователей
     public function getOnline($boardUuid)
     {
-        // Очищаем старые записи
         OnlineUser::cleanupOld(2);
 
-        // Получаем онлайн пользователей
         $onlineUsers = OnlineUser::getOnlineForBoard($boardUuid, 2);
 
         return response()->json([
@@ -75,73 +83,66 @@ class OnlineController extends Controller
                     'os' => $user->os,
                     'screen_resolution' => $user->screen_resolution,
                     'last_seen_at' => $user->last_seen_at->diffForHumans(),
-                    'last_seen_timestamp' => $user->last_seen_at->timestamp
+                    'last_seen_timestamp' => $user->last_seen_at->timestamp,
                 ];
             })
         ]);
     }
 
-    // Определение типа устройства
-    private function detectDeviceType($userAgent)
+    private function detectDeviceType()
     {
-        if (str_contains($userAgent, 'Mobile') || str_contains($userAgent, 'Android')) {
-            return 'mobile';
-        }
-        if (str_contains($userAgent, 'Tablet') || str_contains($userAgent, 'iPad')) {
-            return 'tablet';
-        }
-        return 'desktop';
+        if (Agent::isMobile()) return 'mobile';
+        if (Agent::isTablet()) return 'tablet';
+        if (Agent::isDesktop()) return 'desktop';
+        return 'other';
     }
 
-    // Определение браузера
-    private function detectBrowser($userAgent)
+    private function detectBrowser()
     {
-        if (str_contains($userAgent, 'Chrome') && !str_contains($userAgent, 'Edg')) {
-            return 'Chrome';
+        $browser = Agent::browser();
+
+        if (empty($browser) || $browser === 'Other') {
+            $userAgent = Agent::getUserAgent();
+            if (str_contains($userAgent, 'YaBrowser')) return 'Яндекс';
+            if (str_contains($userAgent, 'Edg')) return 'Edge';
+            if (str_contains($userAgent, 'OPR') || str_contains($userAgent, 'Opera')) return 'Opera';
+            if (str_contains($userAgent, 'Chrome')) return 'Chrome';
+            if (str_contains($userAgent, 'Firefox')) return 'Firefox';
+            if (str_contains($userAgent, 'Safari')) return 'Safari';
+            return 'Неизвестно';
         }
-        if (str_contains($userAgent, 'Firefox')) {
-            return 'Firefox';
-        }
-        if (str_contains($userAgent, 'Safari') && !str_contains($userAgent, 'Chrome')) {
-            return 'Safari';
-        }
-        if (str_contains($userAgent, 'Edg')) {
-            return 'Edge';
-        }
-        if (str_contains($userAgent, 'Opera') || str_contains($userAgent, 'OPR')) {
-            return 'Opera';
-        }
-        return 'Other';
+
+        return $browser;
     }
 
-    // Определение ОС
-    private function detectOS($userAgent)
+    private function detectOS()
     {
-        if (str_contains($userAgent, 'Windows')) {
-            return 'Windows';
+        $platform = Agent::platform();
+
+        if (empty($platform) || $platform === 'Other') {
+            $userAgent = Agent::getUserAgent();
+            if (str_contains($userAgent, 'Windows')) return 'Windows';
+            if (str_contains($userAgent, 'Mac')) return 'macOS';
+            if (str_contains($userAgent, 'Linux')) return 'Linux';
+            if (str_contains($userAgent, 'Android')) return 'Android';
+            if (str_contains($userAgent, 'iOS') || str_contains($userAgent, 'iPhone') || str_contains($userAgent, 'iPad')) return 'iOS';
+            return 'Неизвестно';
         }
-        if (str_contains($userAgent, 'Mac')) {
-            return 'macOS';
-        }
-        if (str_contains($userAgent, 'Linux')) {
-            return 'Linux';
-        }
-        if (str_contains($userAgent, 'Android')) {
-            return 'Android';
-        }
-        if (str_contains($userAgent, 'iOS') || str_contains($userAgent, 'iPhone') || str_contains($userAgent, 'iPad')) {
-            return 'iOS';
-        }
-        return 'Other';
+
+        return $platform;
     }
 
-    // Маскирование IP для безопасности (показываем только часть)
     private function maskIp($ip)
     {
+        if (str_contains($ip, ':')) {
+            return substr($ip, 0, 8) . ':***';
+        }
+
         $parts = explode('.', $ip);
         if (count($parts) === 4) {
             return $parts[0] . '.' . $parts[1] . '.*.*';
         }
+
         return substr($ip, 0, 7) . '***';
     }
 }
