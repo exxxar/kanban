@@ -41,7 +41,8 @@
 
             <ColumnDropdown
                 :column="column"
-                @add-task="showAddMenu = true"
+                @add-task="$emit('add-task', column.id)"
+                @add-client="$emit('add-client', column.id)"
                 @open-sort="$emit('open-sort')"
                 @open-notification="$emit('open-notification', column)"
                 @delete-column="showDeleteModal = true"

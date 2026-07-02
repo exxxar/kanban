@@ -38,44 +38,6 @@ return [
                 ],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [3, 8],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['development', 'bug', 'client', 'urgent', 'design'],
-            'client_ratio' => 30,
-            'client_sources' => ['Сайт', 'Рекомендация', 'Звонок', 'Email', 'Telegram'],
-            'client_services' => ['Стандарт', 'Премиум', 'VIP'],
-            'columns' => [
-                'Пул заявок' => [
-                    'titles' => ['Задача #{n}', 'Заявка #{n}', 'Запрос #{n}'],
-                    'descriptions' => ['Новая задача', 'Требует обработки', 'Срочный вопрос'],
-                    'subtasks' => ['Изучить', 'Связаться', 'Подготовить ответ'],
-                ],
-                'К выполнению' => [
-                    'titles' => ['Задача #{n}', 'План #{n}'],
-                    'descriptions' => ['Запланировано', 'Готово к выполнению'],
-                    'subtasks' => ['Начать', 'Выполнить'],
-                ],
-                'В процессе работы' => [
-                    'titles' => ['В работе #{n}'],
-                    'descriptions' => ['Активная работа', 'Ожидает решения'],
-                    'subtasks' => ['Выполнить', 'Проверить', 'Согласовать'],
-                ],
-                'Обработка результатов' => [
-                    'titles' => ['Результат #{n}'],
-                    'descriptions' => ['Требует проверки', 'На утверждении'],
-                    'subtasks' => ['Проверить', 'Утвердить'],
-                ],
-                'Завершено' => [
-                    'titles' => ['Готово #{n}'],
-                    'descriptions' => ['Задача выполнена', 'Клиент доволен'],
-                ],
-                'Отклонено' => [
-                    'titles' => ['Отклонено #{n}'],
-                    'descriptions' => ['Отменено', 'Не принято в работу'],
-                ],
-            ],
-        ],
     ],
 
     // ============================================================
@@ -118,15 +80,6 @@ return [
                 ['id' => 4, 'name' => 'Повторный клиент', 'key' => 'repeat_client', 'icon' => 'fa-solid fa-rotate'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [2, 5],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Сайт', 'Рекомендация', 'Контекстная реклама', 'SEO', 'Instagram', 'Telegram', 'Холодный звонок', 'Выставка'],
-            'client_services' => ['Стандарт', 'Премиум', 'VIP', 'Корпоративный'],
-        ],
     ],
 
     'crm_simple' => [
@@ -153,15 +106,6 @@ return [
                 ['id' => 2, 'name' => 'Постоянный клиент', 'key' => 'regular_client', 'icon' => 'fa-solid fa-user-check'],
                 ['id' => 3, 'name' => 'VIP клиент', 'key' => 'vip_client', 'icon' => 'fa-solid fa-crown'],
             ],
-        ],
-        'generate' => [
-            'tasks_per_column' => [2, 4],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Сайт', 'Звонок', 'Email', 'Рекомендация'],
-            'client_services' => ['Базовый', 'Стандарт', 'Премиум'],
         ],
     ],
 
@@ -208,15 +152,6 @@ return [
                 ['id' => 5, 'name' => 'Стартап', 'key' => 'startup', 'icon' => 'fa-solid fa-rocket'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [1, 3],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['LinkedIn', 'Конференция', 'Партнёр', 'Тендер', 'Рекомендация', 'Холодный обзвон'],
-            'client_services' => ['Enterprise', 'Business', 'Starter', 'Custom'],
-        ],
     ],
 
     'crm_real_estate' => [
@@ -259,15 +194,6 @@ return [
                 ['id' => 5, 'name' => 'Новостройка', 'key' => 'new_building', 'icon' => 'fa-solid fa-hammer'],
                 ['id' => 6, 'name' => 'Вторичка', 'key' => 'secondary', 'icon' => 'fa-solid fa-house-chimney'],
             ],
-        ],
-        'generate' => [
-            'tasks_per_column' => [1, 3],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Авито', 'Циан', 'Сайт', 'Рекомендация', 'Соцсети', 'Наружная реклама'],
-            'client_services' => ['Покупка', 'Продажа', 'Аренда', 'Ипотека'],
         ],
     ],
 
@@ -312,15 +238,6 @@ return [
                 ['id' => 5, 'name' => 'Экзотика', 'key' => 'exotic', 'icon' => 'fa-solid fa-tree'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [1, 3],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Сайт', 'Instagram', 'Рекомендация', 'Выставка', 'Партнёры'],
-            'client_services' => ['Пляжный', 'Экскурсионный', 'Горнолыжный', 'Круиз', 'Экзотика'],
-        ],
     ],
 
     'crm_education' => [
@@ -361,15 +278,6 @@ return [
                 ['id' => 5, 'name' => 'Менеджмент', 'key' => 'management', 'icon' => 'fa-solid fa-briefcase'],
                 ['id' => 6, 'name' => 'Аналитика', 'key' => 'analytics', 'icon' => 'fa-solid fa-chart-simple'],
             ],
-        ],
-        'generate' => [
-            'tasks_per_column' => [2, 4],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Сайт', 'Реклама', 'YouTube', 'Рекомендация', 'Вебинар'],
-            'client_services' => ['Онлайн', 'Офлайн', 'Индивидуально', 'Группа', 'Корпоративное'],
         ],
     ],
 
@@ -413,15 +321,6 @@ return [
                 ['id' => 6, 'name' => 'Налоговое', 'key' => 'tax', 'icon' => 'fa-solid fa-file-invoice'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [1, 3],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Сайт', 'Рекомендация', 'Партнёр', 'Реклама'],
-            'client_services' => ['Консультация', 'Представительство', 'Абонентское', 'Разовая услуга'],
-        ],
     ],
 
     'crm_consulting' => [
@@ -462,15 +361,6 @@ return [
                 ['id' => 5, 'name' => 'Обучение', 'key' => 'training', 'icon' => 'fa-solid fa-chalkboard-user'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [1, 3],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['LinkedIn', 'Конференция', 'Партнёр', 'Сайт', 'Рекомендация'],
-            'client_services' => ['Стратегия', 'Оптимизация', 'Внедрение', 'Аудит', 'Обучение'],
-        ],
     ],
 
     // ============================================================
@@ -493,6 +383,7 @@ return [
         ],
     ],
 
+    // === ШАБЛОН С ГЕНЕРАЦИЕЙ ДАННЫХ ===
     'food_test' => [
         'title' => 'Тестовый общепит',
         'icon'  => 'fa-utensils',
@@ -580,6 +471,7 @@ return [
         'columns' => ['Диагностика', 'Ожидание запчастей', 'В работе', 'Готово', 'Выдано клиенту'],
     ],
 
+    // === ШАБЛОН С ГЕНЕРАЦИЕЙ ДАННЫХ ===
     'autoservice_test' => [
         'title' => 'Тестовый автосервис',
         'icon'  => 'fa-car',
@@ -672,15 +564,6 @@ return [
                 ['id' => 5, 'name' => 'Косметология', 'key' => 'cosmetology', 'icon' => 'fa-solid fa-face-smile'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [2, 5],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Instagram', 'Сайт', 'Рекомендация', 'Прохожие'],
-            'client_services' => ['Стрижка', 'Окрашивание', 'Маникюр', 'Массаж', 'Косметология'],
-        ],
     ],
 
     'ecommerce' => [
@@ -710,15 +593,6 @@ return [
                 ['id' => 3, 'name' => 'Возврат', 'key' => 'return', 'icon' => 'fa-solid fa-rotate-left'],
                 ['id' => 4, 'name' => 'Проблема', 'key' => 'problem_ecom', 'icon' => 'fa-solid fa-triangle-exclamation'],
             ],
-        ],
-        'generate' => [
-            'tasks_per_column' => [2, 5],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['Сайт', 'Маркетплейс', 'Instagram', 'Яндекс.Маркет'],
-            'client_services' => ['Стандарт', 'Экспресс', 'Самовывоз', 'Пункт выдачи'],
         ],
     ],
 
@@ -761,15 +635,6 @@ return [
                 ['id' => 5, 'name' => 'C-level', 'key' => 'c_level', 'icon' => 'fa-solid fa-crown'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [2, 4],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['client'],
-            'clients' => true,
-            'client_ratio' => 100,
-            'client_sources' => ['HeadHunter', 'LinkedIn', 'Рекомендация', 'Отклик', 'Хантинг'],
-            'client_services' => ['Junior', 'Middle', 'Senior', 'Lead', 'C-level'],
-        ],
     ],
 
     'marketing' => [
@@ -802,12 +667,6 @@ return [
                 ['id' => 6, 'name' => 'PR', 'key' => 'pr', 'icon' => 'fa-solid fa-newspaper'],
             ],
         ],
-        'generate' => [
-            'tasks_per_column' => [2, 5],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['marketing', 'design', 'urgent'],
-            'client_ratio' => 0,
-        ],
     ],
 
     'support' => [
@@ -837,30 +696,6 @@ return [
                 ['id' => 3, 'name' => 'Запрос функции', 'key' => 'feature_request', 'icon' => 'fa-solid fa-lightbulb'],
                 ['id' => 4, 'name' => 'Инцидент', 'key' => 'incident', 'icon' => 'fa-solid fa-triangle-exclamation'],
                 ['id' => 5, 'name' => 'Консультация', 'key' => 'consultation', 'icon' => 'fa-solid fa-comments'],
-            ],
-        ],
-        'generate' => [
-            'tasks_per_column' => [3, 8],
-            'priorities' => ['low', 'medium', 'high'],
-            'labels' => ['bug', 'urgent', 'support'],
-            'client_ratio' => 15,
-            'client_sources' => ['Email', 'Чат', 'Телефон', 'Портал'],
-            'client_services' => ['Базовая', 'Премиум', 'Корпоративная'],
-            'columns' => [
-                'Новые тикеты' => [
-                    'titles' => ['Тикет #{n}', 'Обращение #{n}'],
-                    'descriptions' => ['Не работает функция', 'Ошибка при загрузке', 'Вопрос по оплате'],
-                    'subtasks' => ['Изучить проблему', 'Классифицировать', 'Назначить исполнителя'],
-                ],
-                'В работе' => [
-                    'titles' => ['В работе #{n}'],
-                    'descriptions' => ['Диагностика', 'Поиск решения'],
-                    'subtasks' => ['Воспроизвести', 'Найти причину', 'Исправить'],
-                ],
-                'Решено' => [
-                    'titles' => ['Решено #{n}'],
-                    'descriptions' => ['Проблема устранена', 'Предоставлено решение'],
-                ],
             ],
         ],
     ],

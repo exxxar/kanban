@@ -17,6 +17,12 @@
                     </button>
                 </li>
                 <li>
+                    <button class="dropdown-item-custom" @click.stop="handleAction('add-client')">
+                        <i class="fa-solid fa-person-circle-plus me-2 text-success"></i>
+                        Добавить клиента
+                    </button>
+                </li>
+                <li>
                     <button class="dropdown-item-custom" @click.stop="handleAction('open-sort')">
                         <i class="fa-solid fa-folder-tree me-2 text-info"></i>
                         Перенести колонку

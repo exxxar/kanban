@@ -8,9 +8,17 @@ export const useBoardTemplateStore = defineStore('boardTemplate', {
     }),
 
     actions: {
+
         async loadTemplates() {
-            const { data } = await axios.get('/api/boards/choose-template')
-            this.templates = data
+            this.loading = true
+            try {
+                const { data } = await axios.get('/api/boards/choose-template')
+                this.templates = data
+            } catch (error) {
+                console.error('Ошибка загрузки шаблонов:', error)
+            } finally {
+                this.loading = false
+            }
         },
 
         async applyTemplate(uuid, templateId) {

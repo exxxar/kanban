@@ -111,6 +111,7 @@
                         @add-task="openTaskModal"
                         @add-client="openClientModal"
                         @edit-task="openTaskModalForced"
+                        @edit-client="openClientModalForced"
                     />
                 </template>
             </div>

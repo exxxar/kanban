@@ -47,10 +47,23 @@ class HomeController extends Controller
 
         return response()->json(
             collect($templates)->map(function ($tpl, $key) {
+                $hasGeneration = isset($tpl['generate']);
+
+                $generationInfo = null;
+                if ($hasGeneration) {
+                    $generationInfo = [
+                        'columns' => count($tpl['columns'] ?? []),
+                        'tasksRange' => $tpl['generate']['tasks_per_column'] ?? [0, 0],
+                        'clients' => $tpl['generate']['client_ratio'] ?? 0,
+                    ];
+                }
+
                 return [
                     'id' => $key,
                     'title' => $tpl['title'],
                     'icon' => $tpl['icon'],
+                    'hasGeneration' => $hasGeneration,
+                    'generationInfo' => $generationInfo,
                 ];
             })->values()
         );

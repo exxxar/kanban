@@ -126,9 +126,16 @@
                             v-for="tpl in templateStore.templates"
                             :key="tpl.id"
                             class="template-card"
+                            :class="{ 'has-generation': tpl.hasGeneration }"
                             :disabled="templateStore.loading"
                             @click="selectTemplate(tpl.id)"
                         >
+                            <!-- Бейдж генерации -->
+                            <div v-if="tpl.hasGeneration" class="generation-badge">
+                                <i class="fa-solid fa-database"></i>
+                                <span>С данными</span>
+                            </div>
+
                             <div class="template-card-icon">
                                 <i :class="['fa-solid', tpl.icon]"></i>
                             </div>
@@ -1328,5 +1335,74 @@ export default {
 
 .modal-body-custom::-webkit-scrollbar-thumb:hover {
     background: #adb5bd;
+}
+
+/* === КАРТОЧКА С ГЕНЕРАЦИЕЙ === */
+.template-card.has-generation {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.template-card.has-generation:hover:not(:disabled) {
+    border-color: #059669;
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+}
+
+/* Бейдж генерации */
+.generation-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    z-index: 2;
+}
+
+.generation-badge i {
+    font-size: 8px;
+}
+
+/* Информация о генерации */
+.template-card-generation-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #e9ecef;
+}
+
+.gen-info-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: #6c757d;
+}
+
+.gen-info-item i {
+    font-size: 9px;
+    color: #10b981;
+    width: 12px;
+    text-align: center;
+}
+
+.gen-info-clients i {
+    color: #7c3aed;
+}
+
+.gen-info-clients {
+    color: #7c3aed;
+    font-weight: 600;
 }
 </style>
