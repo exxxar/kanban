@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Board;
+use App\Models\Column;
 use App\Models\Task;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
