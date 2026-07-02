@@ -529,7 +529,7 @@
 </template>
 
 <script>
-import { useKanbanStore } from '@/stores/useKanbanStore'
+import { useKanbanStore } from '@/stores/kanban/useKanbanStore.js'
 import Sortable from 'sortablejs'
 import CardUser from './Cards/CardUser.vue'
 import CardOrder from './Cards/CardOrder.vue'

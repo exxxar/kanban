@@ -46,13 +46,15 @@
                         <i class="fa-solid fa-pen-to-square edit-board-icon"></i>
                     </h2>
                     <div class="board-subtitle">
-                        {{ store.columns?.length || 0 }} колонок •
+                        {{ store.filteredColumns?.length || 0 }} колонок •
                         {{ totalTasksCount }} задач
                     </div>
                 </div>
             </div>
 
             <div class="board-actions">
+
+
                 <button class="action-btn" @click="copyLink" title="Скопировать ссылку">
                     <i class="fas fa-link"></i>
                 </button>
@@ -76,13 +78,19 @@
             </div>
         </header>
 
+        <!-- Панель фильтра (под шапкой) -->
+        <div class="filter-wrapper">
+            <BoardFilter />
+        </div>
+
+
         <!-- === МОБИЛЬНАЯ ВЕРСИЯ === -->
         <div class="mobile-view d-md-none">
             <div class="mobile-tabs-wrapper">
                 <div class="mobile-tabs">
                     <button
                         type="button"
-                        v-for="col in store.columns"
+                        v-for="col in store.filteredColumns"
                         :key="col.id"
                         class="mobile-tab"
                         :class="{ 'active': activeColumn === col.id }"
@@ -113,7 +121,7 @@
             <div class="board-centered">
                 <TransitionGroup name="board-columns" tag="div" class="kanban-board">
                     <KanbanColumn
-                        v-for="column in store.columns"
+                        v-for="column in store.filteredColumns"
                         :key="column.id"
                         :column="column"
                         @open-sort="showSortModal = true"
@@ -205,7 +213,7 @@
 
         <ColumnSortModal
             :show="showSortModal"
-            :columns="store.columns"
+            :columns="store.filteredColumns"
             @close="showSortModal = false"
             @save="applySort"
         />
@@ -233,7 +241,7 @@
 </template>
 
 <script>
-import { useKanbanStore } from '@/stores/useKanbanStore'
+import { useKanbanStore } from '@/stores/kanban/useKanbanStore.js'
 import KanbanColumn from './KanbanColumn.vue'
 import TaskModal from './TaskModal.vue'
 import ColumnModal from './ColumnModal.vue'
@@ -245,6 +253,8 @@ import KanbanTask from './KanbanTask.vue'
 import BoardSettings from "@/Components/Kanban/BoardSettingsModal.vue"
 import ClientCreateModal from '@/Components/Kanban/Clients/ClientCreateModal.vue'
 
+import BoardFilter from '@/Components/Kanban/Support/BoardFilter.vue'
+
 export default {
     components: {
         BoardSettings,
@@ -252,6 +262,7 @@ export default {
         ColumnNotificationsModal,
         KanbanColumn,
         TaskModal,
+        BoardFilter,
         ColumnModal,
         ConfirmModal,
         TokenModal,
@@ -1156,5 +1167,27 @@ export default {
 
 .board-scroll-wrapper::-webkit-scrollbar-thumb:hover {
     background: #868e96;
+}
+
+/* === ОБЁРТКА ФИЛЬТРА === */
+.filter-wrapper {
+    position: relative;
+    margin-bottom: 0;
+}
+
+/* Пустая колонка при фильтрации */
+.kanban-column.filtered-empty {
+    opacity: 0.5;
+}
+
+.kanban-column.filtered-empty::after {
+    content: 'Нет результатов';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    color: #adb5bd;
+    font-weight: 600;
 }
 </style>

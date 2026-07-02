@@ -471,7 +471,7 @@
 </template>
 
 <script>
-import { useKanbanStore } from "@/stores/useKanbanStore.js"
+import { useKanbanStore } from "@/stores/kanban/useKanbanStore.js"
 import CustomFieldsSettings from '@/Components/Kanban/Support/CustomFieldsSettings.vue'
 import CustomCategoriesSettings from "@/Components/Kanban/Support/CustomCategoriesSettings.vue";
 export default {

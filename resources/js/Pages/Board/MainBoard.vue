@@ -160,7 +160,7 @@
 
 <script>
 import KanbanBoard from '@/Components/Kanban/KanbanBoard.vue'
-import {useKanbanStore} from "@/stores/useKanbanStore.js";
+import {useKanbanStore} from "@/stores/kanban/useKanbanStore.js";
 import {useBoardTemplateStore} from "@/stores/useBoardTemplateStore.js";
 import { ColorPicker } from "vue3-colorpicker";
 import "vue3-colorpicker/style.css";

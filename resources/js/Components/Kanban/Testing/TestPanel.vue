@@ -84,7 +84,7 @@
 </template>
 
 <script>
-import { useKanbanStore } from '@/stores/useKanbanStore'
+import { useKanbanStore } from '@/stores/kanban/useKanbanStore.js'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
 

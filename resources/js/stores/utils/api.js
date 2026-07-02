@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { useKanbanStore } from '@/stores/useKanbanStore.js'
+import { useKanbanStore } from '@/stores/kanban/useKanbanStore.js'
 
 export async function apiRequest(method, url, payload = {}, options = {}) {
     const store = useKanbanStore()

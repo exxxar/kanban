@@ -90,7 +90,7 @@
 
 <script>
 import { useAuthTokenStore } from '@/stores/useAuthTokenStore.js'
-import { useKanbanStore } from "@/stores/useKanbanStore.js"
+import { useKanbanStore } from "@/stores/kanban/useKanbanStore.js"
 import TestPanel from "@/Components/Kanban/Testing/TestPanel.vue"
 
 export default {

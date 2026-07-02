@@ -159,7 +159,7 @@
 </template>
 
 <script>
-import { useKanbanStore } from '@/stores/useKanbanStore'
+import { useKanbanStore } from '@/stores/kanban/useKanbanStore.js'
 import KanbanTask from './KanbanTask.vue'
 import ConfirmModal from "@/Components/Kanban/ConfirmModal.vue"
 import ColumnDropdown from '@/Components/Kanban/Column/ColumnDropdown.vue'

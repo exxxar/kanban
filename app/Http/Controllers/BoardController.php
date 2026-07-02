@@ -78,7 +78,7 @@ class BoardController extends Controller
 
         if (!is_null($board)) {
             Inertia::share(["board_uuid" => $board->uuid]);
-            return Inertia::render('Board/Show', [
+            return Inertia::render('Board/MainBoard', [
                 'board' => $board,
                 'vapidPublicKey' => config('webpush.vapid.public_key')
             ]);

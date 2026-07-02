@@ -482,7 +482,7 @@
 </template>
 
 <script>
-import { useKanbanStore } from '@/stores/useKanbanStore'
+import { useKanbanStore } from '@/stores/kanban/useKanbanStore.js'
 import ClientTimeline from '@/Components/Kanban/Clients/ClientTimeline.vue'
 import CustomFieldsRenderer from '@/Components/Kanban/Support/CustomFieldsRenderer.vue'
 import Sortable from 'sortablejs'
