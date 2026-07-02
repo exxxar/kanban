@@ -72,11 +72,9 @@ class HomeController extends Controller
 
         $tpl = $templates[$request->template];
 
-        // === ПРИМЕНЕНИЕ НАСТРОЕК ДОСКИ (config) ===
+        // === ПРИМЕНЕНИЕ КОНФИГА ДОСКИ ===
         if (!empty($tpl['config'])) {
-            $board->update([
-                'config' => array_merge($board->config ?? [], $tpl['config'])
-            ]);
+            $this->applyBoardConfig($board, $tpl['config']);
         }
 
         // === СОЗДАНИЕ КОЛОНОК ===
@@ -99,8 +97,89 @@ class HomeController extends Controller
 
         return response()->json([
             'status' => 'ok',
-            'board' => $board->load('columns.tasks')
+            'board' => $board->fresh()->load('columns.tasks')
         ]);
+    }
+
+    /**
+     * Применение конфига доски из шаблона
+     */
+    private function applyBoardConfig(Board $board, array $config)
+    {
+        $validated = [];
+
+        // === CUSTOM FIELDS ===
+        if (!empty($config['custom_fields'])) {
+            $validated['custom_fields'] = [];
+
+            foreach ($config['custom_fields'] as $section) {
+                $validatedSection = [
+                    'id' => $section['id'] ?? uniqid(),
+                    'title' => $section['title'] ?? 'Секция',
+                    'icon' => $section['icon'] ?? 'fa-solid fa-puzzle-piece',
+                    'color' => $section['color'] ?? '#667eea',
+                    'target' => $section['target'] ?? 'task',
+                    'fields' => [],
+                ];
+
+                if (!empty($section['fields'])) {
+                    foreach ($section['fields'] as $field) {
+                        $validatedSection['fields'][] = [
+                            'label' => $field['label'] ?? 'Поле',
+                            'name' => $field['name'] ?? 'field_' . uniqid(),
+                            'type' => $field['type'] ?? 'text',
+                        ];
+                    }
+                }
+
+                $validated['custom_fields'][] = $validatedSection;
+            }
+        }
+
+        // === CUSTOM CATEGORIES ===
+        if (!empty($config['custom_categories'])) {
+            $validated['custom_categories'] = [];
+
+            foreach ($config['custom_categories'] as $category) {
+                $validated['custom_categories'][] = [
+                    'id' => $category['id'] ?? uniqid(),
+                    'name' => $category['name'] ?? 'Категория',
+                    'key' => $category['key'] ?? 'category_' . uniqid(),
+                    'icon' => $category['icon'] ?? 'fa-solid fa-tag',
+                ];
+            }
+        }
+
+        // === WEBHOOK ===
+        if (isset($config['webhook_url'])) {
+            $validated['webhook_url'] = $config['webhook_url'];
+        }
+
+        // === EMAIL ===
+        if (isset($config['email_for_notification'])) {
+            $validated['email_for_notification'] = $config['email_for_notification'];
+            $validated['need_email_notification'] = $config['need_email_notification'] ?? false;
+        }
+
+        // === LINKED BOARDS ===
+        if (!empty($config['linked_boards'])) {
+            $validated['linked_boards'] = [];
+
+            foreach ($config['linked_boards'] as $linkedBoard) {
+                $validated['linked_boards'][] = [
+                    'url' => $linkedBoard['url'] ?? '',
+                    'title' => $linkedBoard['title'] ?? '',
+                    'uuid' => $linkedBoard['uuid'] ?? null,
+                ];
+            }
+        }
+
+        // === СОХРАНЕНИЕ ===
+        if (!empty($validated)) {
+            $board->update([
+                'config' => array_merge($board->config ?? [], $validated)
+            ]);
+        }
     }
 
     /**
