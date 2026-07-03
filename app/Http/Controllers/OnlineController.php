@@ -22,7 +22,6 @@ class OnlineController extends Controller
         $ipAddress = $request->ip();
         $userAgent = $request->userAgent();
 
-        // Ручной парсинг User-Agent
         $deviceType = $this->detectDeviceType($userAgent);
         $browser = $this->detectBrowser($userAgent);
         $os = $this->detectOS($userAgent);
@@ -52,7 +51,16 @@ class OnlineController extends Controller
                 ->update($attributes);
         }
 
-        OnlineUser::cleanupOld(2);
+        // === ОЧИСТКА ТОЛЬКО В HEARTBEAT И С МАЛОЙ ВЕРОЯТНОСТЬЮ ===
+        // 1 из 10 запросов (примерно раз в 5 минут при 30-секундном интервале)
+        if (rand(1, 10) === 1) {
+            try {
+                OnlineUser::cleanupOld(2);
+            } catch (\Exception $e) {
+                // Игнорируем ошибки deadlock при очистке
+                \Log::warning('Cleanup failed: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -62,7 +70,8 @@ class OnlineController extends Controller
 
     public function getOnline($boardUuid)
     {
-        OnlineUser::cleanupOld(2);
+        // === УБРАЛИ cleanupOld ОТСЮДА ===
+        // Только чтение, без удаления — нет deadlock
 
         $onlineUsers = OnlineUser::getOnlineForBoard($boardUuid, 2);
 
@@ -82,8 +91,6 @@ class OnlineController extends Controller
             })
         ]);
     }
-
-    // === РУЧНОЙ ПАРСИНГ USER-AGENT ===
 
     private function detectDeviceType($userAgent)
     {
