@@ -12,7 +12,7 @@ class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $tasks = Task::with(['tags', 'client', 'comments', 'attachments', 'messages'])
+        $tasks = Task::with(['tags', 'client', 'comments', 'messages'])
             ->withCount('comments')
             ->orderBy('created_at', 'desc')
             ->paginate(50);
@@ -33,7 +33,7 @@ class TaskController extends Controller
         $board = Board::where('uuid', $boardUuid)->firstOrFail();
 
         $tasks = Task::where('board_id', $board->id)
-            ->with(['tags', 'client', 'comments', 'attachments', 'messages'])
+            ->with(['tags', 'client', 'comments', 'messages'])
             ->withCount('comments')
             ->orderBy('column_id')
             ->orderBy('position')
@@ -48,7 +48,7 @@ class TaskController extends Controller
     public function indexByColumn(Request $request, int $columnId)
     {
         $tasks = Task::where('column_id', $columnId)
-            ->with(['tags', 'client', 'comments', 'attachments', 'messages'])
+            ->with(['tags', 'client', 'comments',  'messages'])
             ->withCount('comments')
             ->orderBy('position')
             ->get();
@@ -70,7 +70,7 @@ class TaskController extends Controller
 
     public function show(int $taskId)
     {
-        $task = Task::with(['tags', 'client', 'comments.attachments', 'attachments', 'messages.attachments'])
+        $task = Task::with(['tags', 'client', 'comments','messages'])
             ->withCount('comments')
             ->findOrFail($taskId);
 

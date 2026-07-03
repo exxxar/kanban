@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Task;
-use App\Models\Comment;
+use App\Models\TaskComment;
 use Illuminate\Http\Request;
 
 class CommentController extends Controller
@@ -60,7 +60,7 @@ class CommentController extends Controller
 
     public function update(Request $request, int $commentId)
     {
-        $comment = Comment::findOrFail($commentId);
+        $comment = TaskComment::findOrFail($commentId);
 
         $validated = $request->validate([
             'text' => 'required|string',
@@ -76,7 +76,7 @@ class CommentController extends Controller
 
     public function destroy(int $commentId)
     {
-        $comment = Comment::findOrFail($commentId);
+        $comment = TaskComment::findOrFail($commentId);
         $comment->attachments()->delete();
         $comment->delete();
 

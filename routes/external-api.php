@@ -67,6 +67,8 @@ Route::prefix('tasks')->group(function () {
     Route::post('/{taskId}/messages', [MessageController::class, 'store']); // Отправить сообщение
     Route::post('/{taskId}/messages/read-all', [MessageController::class, 'markAllRead']); // Отметить все прочитанными
     Route::post('/messages/{messageId}/read', [MessageController::class, 'markRead']); // Отметить прочитанным
+    Route::post('/messages/{messageId}/attachments', [MessageController::class, 'addAttachments']);
+    Route::delete('/messages/{messageId}/attachments/{attachmentIndex}', [MessageController::class, 'removeAttachment']);
 
     // === ТЕГИ ЗАДАЧИ ===
     Route::post('/{taskId}/tags', [TagController::class, 'attachToTask']); // Привязать теги
