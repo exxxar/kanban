@@ -35,14 +35,18 @@ class MessageController extends Controller
     {
         $task = Task::findOrFail($taskId);
 
+        // === ВАЛИДАЦИЯ ===
         $validated = $request->validate([
             'message' => 'nullable|string',
-            'payload' => 'nullable|array',
+            'payload' => 'nullable', // Принимаем как есть (строка или массив)
             'sender_type' => 'required|string',
             'sender_label' => 'nullable|string',
             'files' => 'nullable|array',
             'files.*' => 'file|max:10240',
         ]);
+
+        // === ДЕКОДИРОВАНИЕ PAYLOAD ===
+        $payload = $this->parsePayload($validated['payload'] ?? []);
 
         // === СОХРАНЕНИЕ ФАЙЛОВ ===
         $attachments = [];
@@ -65,7 +69,7 @@ class MessageController extends Controller
             'sender_type' => $validated['sender_type'],
             'sender_label' => $validated['sender_label'] ?? null,
             'message' => $validated['message'] ?? null,
-            'payload' => $validated['payload'] ?? [],
+            'payload' => $payload,
             'attachments' => $attachments,
             'is_read' => false,
         ]);
@@ -141,10 +145,16 @@ class MessageController extends Controller
 
         $validated = $request->validate([
             'message' => 'nullable|string',
-            'payload' => 'nullable|array',
+            'payload' => 'nullable',
         ]);
 
-        $message->update($validated);
+        $data = ['message' => $validated['message'] ?? $message->message];
+
+        if (isset($validated['payload'])) {
+            $data['payload'] = $this->parsePayload($validated['payload']);
+        }
+
+        $message->update($data);
 
         return response()->json([
             'success' => true,
@@ -220,8 +230,26 @@ class MessageController extends Controller
     }
 
     /**
+     * Парсинг payload из строки или массива
+     */
+    protected function parsePayload($payload): array
+    {
+        if (is_array($payload)) {
+            return $payload;
+        }
+
+        if (is_string($payload)) {
+            $decoded = json_decode($payload, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
+
+    /**
      * Форматирование сообщения для ответа
-     * Добавляет URL к вложениям если его нет
      */
     protected function formatMessage(CardMessage $message): array
     {
