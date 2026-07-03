@@ -1,19 +1,56 @@
 // ==========================================
 // Кэш-версия. Меняй при каждом обновлении!
 // ==========================================
-const CACHE_VERSION = 'v1.0.4';
-const STATIC_CACHE = `static-${CACHE_VERSION}`;
-const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
-const IMAGE_CACHE = `images-${CACHE_VERSION}`;
+const CACHE_VERSION = 'v1.0.15';
+const STATIC_CACHE = `static-kanban-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `dynamic-kanban-${CACHE_VERSION}`;
+const IMAGE_CACHE = `images-kanban-${CACHE_VERSION}`;
 
 // ==========================================
 // Что кэшируем сразу при установке (App Shell)
 // ==========================================
 const PRECACHE_URLS = [
-    '/board/',                          // index.html (точка входа Vue)
-    '/offline.html',                  // fallback при оффлайне
-    // Пути к критичной статике добавятся автоматически через manifest
+    '/board/',
+    '/css/app.css',
+    '/js/app.js',
+    '/offline.html',
 ];
+
+// ==========================================
+// БЕЗОПАСНОЕ ДОБАВЛЕНИЕ В КЭШ
+// Вместо addAll — добавляем по одному с обработкой ошибок
+// ==========================================
+async function safePrecache(cache, urls) {
+    const results = await Promise.allSettled(
+        urls.map(async (url) => {
+            try {
+                const response = await fetch(url, { cache: 'no-cache' });
+                if (!response.ok) {
+                    console.warn(`[SW] ⚠️ Не удалось закэшировать ${url}: HTTP ${response.status}`);
+                    return { url, success: false, status: response.status };
+                }
+                await cache.put(url, response);
+                console.log(`[SW] ✅ Закэшировано: ${url}`);
+                return { url, success: true };
+            } catch (error) {
+                console.warn(`[SW] ⚠️ Ошибка кэширования ${url}:`, error.message);
+                return { url, success: false, error: error.message };
+            }
+        })
+    );
+
+    const failed = results
+        .filter(r => r.status === 'fulfilled' && !r.value.success)
+        .map(r => r.value);
+
+    if (failed.length > 0) {
+        console.warn(`[SW] ⚠️ ${failed.length} из ${urls.length} файлов не закэшированы:`, failed);
+    } else {
+        console.log(`[SW] ✅ Все ${urls.length} файлов успешно закэшированы`);
+    }
+
+    return results;
+}
 
 // ==========================================
 // INSTALL — пре-кэшируем App Shell
@@ -24,9 +61,10 @@ self.addEventListener('install', (event) => {
         caches.open(STATIC_CACHE)
             .then((cache) => {
                 console.log('[SW] Precaching app shell');
-                return cache.addAll(PRECACHE_URLS);
+                // Безопасное кэширование — не падает при недоступных файлах
+                return safePrecache(cache, PRECACHE_URLS);
             })
-            .then(() => self.skipWaiting()) // Активируем сразу, не ждём закрытия вкладок
+            .then(() => self.skipWaiting())
     );
 });
 
@@ -49,7 +87,7 @@ self.addEventListener('activate', (event) => {
                         })
                 );
             })
-            .then(() => self.clients.claim()) // Берём контроль над всеми вкладками сразу
+            .then(() => self.clients.claim())
     );
 });
 
@@ -60,55 +98,38 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Игнорируем не-GET запросы
     if (request.method !== 'GET') return;
-
-    // Игнорируем chrome-extension, devtools и т.п.
     if (!url.protocol.startsWith('http')) return;
 
-    // --------------------------------------
-    // 1. Статика с хэшами в именах (JS/CSS из Vite build)
-    //    Пример: /assets/app-a1b2c3d4.js
-    //    Кэшируем навсегда — имя файла меняется при каждом билде
-    // --------------------------------------
+    // 1. Статика с хэшами (Vite build)
     if (url.pathname.startsWith('/assets/') ||
         url.pathname.match(/\.(js|css|woff2?|ttf|eot)(\?.*)?$/)) {
         event.respondWith(cacheFirst(request, STATIC_CACHE));
         return;
     }
 
-    // --------------------------------------
     // 2. Картинки — cache-first с лимитом
-    // --------------------------------------
     if (request.destination === 'image' ||
         url.pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico)(\?.*)?$/)) {
         event.respondWith(cacheFirstWithLimit(request, IMAGE_CACHE, 100));
         return;
     }
 
-    // --------------------------------------
-    // 3. API запросы — network-first с fallback на кэш
-    //    (чтобы приложение работало оффлайн)
-    // --------------------------------------
+    // 3. API запросы — network-first
     if (url.pathname.startsWith('/api/') ||
         url.pathname.startsWith('/board/api/')) {
         event.respondWith(networkFirst(request, DYNAMIC_CACHE));
         return;
     }
 
-    // --------------------------------------
-    // 4. HTML страницы (включая /board/) — stale-while-revalidate
-    //    Показываем кэш сразу, а в фоне обновляем
-    // --------------------------------------
+    // 4. HTML страницы — stale-while-revalidate
     if (request.destination === 'document' ||
         url.pathname.startsWith('/board')) {
         event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
         return;
     }
 
-    // --------------------------------------
     // 5. Всё остальное — network-first
-    // --------------------------------------
     event.respondWith(networkFirst(request, DYNAMIC_CACHE));
 });
 
@@ -116,7 +137,6 @@ self.addEventListener('fetch', (event) => {
 // Стратегии кэширования
 // ==========================================
 
-// Cache-first: сначала кэш, если нет — сеть
 async function cacheFirst(request, cacheName) {
     const cached = await caches.match(request);
     if (cached) return cached;
@@ -133,7 +153,6 @@ async function cacheFirst(request, cacheName) {
     }
 }
 
-// Cache-first с лимитом (для картинок, чтобы не раздуть кэш)
 async function cacheFirstWithLimit(request, cacheName, maxItems) {
     const cached = await caches.match(request);
     if (cached) return cached;
@@ -151,7 +170,6 @@ async function cacheFirstWithLimit(request, cacheName, maxItems) {
     }
 }
 
-// Network-first: сначала сеть, если нет — кэш
 async function networkFirst(request, cacheName) {
     try {
         const networkResponse = await fetch(request);
@@ -166,7 +184,6 @@ async function networkFirst(request, cacheName) {
     }
 }
 
-// Stale-while-revalidate: сразу отдаём кэш, в фоне обновляем
 async function staleWhileRevalidate(request, cacheName) {
     const cache = await caches.open(cacheName);
     const cached = await cache.match(request);
@@ -183,13 +200,11 @@ async function staleWhileRevalidate(request, cacheName) {
     return cached || (await fetchPromise) || offlineFallback(request);
 }
 
-// Оффлайн-fallback
 async function offlineFallback(request) {
     if (request.destination === 'document') {
         const offlinePage = await caches.match('/offline.html');
         if (offlinePage) return offlinePage;
     }
-    // Для API возвращаем пустой JSON
     if (request.url.includes('/api/')) {
         return new Response(JSON.stringify({ offline: true }), {
             headers: { 'Content-Type': 'application/json' }
@@ -198,7 +213,6 @@ async function offlineFallback(request) {
     return new Response('Offline', { status: 503, statusText: 'Offline' });
 }
 
-// Очистка старых записей из кэша (LRU — удаляем самое старое)
 async function trimCache(cacheName, maxItems) {
     const cache = await caches.open(cacheName);
     const keys = await cache.keys();
@@ -212,7 +226,7 @@ async function trimCache(cacheName, maxItems) {
 // PUSH-УВЕДОМЛЕНИЯ
 // ==========================================
 self.addEventListener('push', (event) => {
-    console.log("[SW] push")
+    console.log("[SW] push");
     let data = { title: 'Уведомление', body: 'Новое сообщение', icon: '/icons/icon-192x192.png' };
 
     if (event.data) {
@@ -240,7 +254,7 @@ self.addEventListener('push', (event) => {
     const channel = new BroadcastChannel('push-notifications');
     channel.postMessage({
         type: 'PUSH_RECEIVED',
-        title: data.title ||'Заголовок',
+        title: data.title || 'Заголовок',
         body: data.body || '',
         url: data.url || '/',
         notificationType: data.notificationType || 'success'
@@ -249,7 +263,7 @@ self.addEventListener('push', (event) => {
     channel.close();
 });
 
-// Клик по уведомлению — открываем нужную страницу
+// Клик по уведомлению
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
@@ -258,24 +272,20 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((windowClients) => {
-                // Если вкладка уже открыта — фокусируемся на ней
                 for (const client of windowClients) {
-
                     if (client.url.includes('/board') && 'focus' in client) {
-                        // Меняем хэш через postMessage (SW не может напрямую менять URL)
                         client.postMessage({ type: 'NAVIGATE', url: urlToOpen });
                         client.postMessage({ type: 'NOTIFICATION_CLICKED', url: urlToOpen });
                         return client.focus();
                     }
                 }
-                // Иначе открываем новую вкладку
                 return clients.openWindow(urlToOpen);
             })
     );
 });
 
 // ==========================================
-// Сообщения от клиента (Vue-приложения)
+// Сообщения от клиента
 // ==========================================
 self.addEventListener('message', (event) => {
     if (event.data === 'SKIP_WAITING') {

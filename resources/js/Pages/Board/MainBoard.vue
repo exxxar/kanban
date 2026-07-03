@@ -395,7 +395,7 @@ export default {
         // Проверяем возможность установки PWA
         this.checkPwaInstall()
 
-        this.initPush()
+       await this.initPush()
 
         if (this.need_request_updates) {
             this.updateTimer()
@@ -511,28 +511,47 @@ export default {
 
         // === PUSH ===
         async initPush() {
+            // === ПРОВЕРКА ПОДДЕРЖКИ ===
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 console.warn('Push notifications not supported')
                 return
             }
 
-            const registration = await navigator.serviceWorker.register('/sw.js')
+            try {
+                // === РЕГИСТРАЦИЯ SW ===
+                const registration = await navigator.serviceWorker.register('/sw.js')
 
-            const permission = await Notification.requestPermission()
-            if (permission !== 'granted') {
-                console.warn('User denied notifications')
-                return
+                // === ЖДЁМ ПОЛНОЙ АКТИВАЦИИ ===
+                // Это ключевое исправление — без ready() subscribe падает
+                await navigator.serviceWorker.ready
+
+                console.log('Service Worker ready:', registration)
+
+                // === ЗАПРОС РАЗРЕШЕНИЯ ===
+                const permission = await Notification.requestPermission()
+                if (permission !== 'granted') {
+                    console.warn('User denied notifications')
+                    return
+                }
+
+                // === ПОДПИСКА НА PUSH ===
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: this.vapidPublicKey,
+                })
+
+                // === ОТПРАВКА НА СЕРВЕР ===
+                await axios.post('/api/push/subscribe', {
+                    subscription: subscription.toJSON(),
+                    board_uuid: this.board.uuid
+                })
+
+                console.log('Push subscription successful')
+            } catch (error) {
+                // === ВАЖНО: не падаем, если push не работает ===
+                console.error('Push initialization failed:', error)
+                // Можно показать пользователю, но не блокировать работу
             }
-
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: this.vapidPublicKey,
-            })
-
-            await axios.post('/api/push/subscribe', {
-                subscription,
-                board_uuid: this.board.uuid
-            })
         }
     }
 }
