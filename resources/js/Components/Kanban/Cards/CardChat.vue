@@ -52,7 +52,7 @@
 
                                 <!-- Bubble -->
                                 <div class="bubble">
-                                    <div class="message-text">{{ msg.message }}</div>
+                                    <div class="message-text" v-html="msg.message"></div>
                                     <div class="message-meta">
                                         <span class="message-time">{{ formatDate(msg.created_at) }}</span>
                                         <i v-if="msg.sender_type === 'manager'" class="fa-solid fa-check-double message-status"></i>

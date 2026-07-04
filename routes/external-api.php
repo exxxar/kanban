@@ -20,6 +20,10 @@ Route::prefix('boards')->group(function () {
     Route::post('/{uuid}/apply-template', [BoardController::class, 'applyTemplate']); // Применить шаблон
     Route::post('/{uuid}/config', [BoardController::class, 'updateConfig']); // Обновить конфиг
 
+    Route::get('/{uuid}/clients/search', [ClientController::class, 'search']);
+    Route::get('/{uuid}/clients/search/phone', [ClientController::class, 'searchByPhone']);
+    Route::get('/{uuid}/clients/search/email', [ClientController::class, 'searchByEmail']);
+
     // === КОЛОНКИ ДОСКИ ===
     Route::post('/{uuid}/columns', [ColumnController::class, 'store']); // Создать колонку
     Route::put('/{uuid}/columns/reorder', [ColumnController::class, 'reorder']); // Изменить порядок
