@@ -23,7 +23,7 @@
 <script>
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import OrderCard from './OrderCard.vue'
+import OrderCard from '@/Components/Kanban/Cards/OrderCard.vue'
 
 // Настройки marked
 marked.setOptions({

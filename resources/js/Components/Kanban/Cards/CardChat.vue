@@ -10,7 +10,6 @@
                 <p class="chat-subtitle">
                     {{ messages.length > 0 ? `${messages.length} сообщений` : 'Начните общение' }}
                 </p>
-
             </div>
             <slot name="close"/>
         </div>
@@ -52,7 +51,9 @@
 
                                 <!-- Bubble -->
                                 <div class="bubble">
-                                    <div class="message-text" v-html="msg.message"></div>
+                                    <!-- 🆕 Используем MessageRenderer -->
+                                    <MessageRenderer :message="msg" />
+
                                     <div class="message-meta">
                                         <span class="message-time">{{ formatDate(msg.created_at) }}</span>
                                         <i v-if="msg.sender_type === 'manager'" class="fa-solid fa-check-double message-status"></i>
@@ -101,8 +102,10 @@
 
 <script>
 import { useChatStore } from '@/stores/chat'
+import MessageRenderer from './MessageRenderer.vue'
 
 export default {
+    components: { MessageRenderer },
     props: {
         taskId: Number
     },
@@ -131,7 +134,6 @@ export default {
             const diff = now - date
             const hours = diff / (1000 * 60 * 60)
 
-            // Если сообщение было сегодня — показываем только время
             if (hours < 24 && date.getDate() === now.getDate()) {
                 return new Intl.DateTimeFormat('ru-RU', {
                     hour: '2-digit',
@@ -139,7 +141,6 @@ export default {
                 }).format(date)
             }
 
-            // Иначе — полную дату
             return new Intl.DateTimeFormat('ru-RU', {
                 day: '2-digit',
                 month: '2-digit',
@@ -186,7 +187,6 @@ export default {
     }
 }
 </script>
-
 <style scoped>
 .card-chat {
     display: flex;
