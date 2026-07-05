@@ -2,7 +2,13 @@
     <div class="message-renderer">
         <!-- 1. СНАЧАЛА проверяем заказ (более специфичный) -->
         <template v-if="isOrder">
-            <OrderCard :order="orderData" />
+            <OrderCard
+                v-if="isOrder"
+                :order="orderData"
+                :task-id="msg.task_id"
+                @view="handleOrderView"
+                @accepted="handleOrderAccepted"
+            />
         </template>
 
         <!-- 2. Потом статусы и системные -->
@@ -144,6 +150,30 @@ export default {
                 ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'code', 'pre', 'br', 'p', 'ul', 'ol', 'li', 'a'],
                 ALLOWED_ATTR: ['href', 'target']
             })
+        }
+    },
+    methods: {
+        // ... существующие методы ...
+
+        /**
+         * Открыть детали заказа
+         */
+        handleOrderView({ orderId, taskId, order }) {
+            // Вариант 1: Открыть модалку
+            this.$emit('show-order-modal', { orderId, taskId, order })
+
+            // Вариант 2: Перейти на страницу заказа
+            // window.open(`/orders/${orderId}`, '_blank')
+        },
+
+        /**
+         * Заказ принят — обновляем UI
+         */
+        handleOrderAccepted({ taskId, orderId, data }) {
+            console.log('[Chat] Заказ принят:', { taskId, orderId, data })
+
+            // Можно добавить уведомление в общий список
+            // или обновить задачу в store
         }
     }
 }

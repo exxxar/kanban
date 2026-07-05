@@ -31,51 +31,208 @@
 
         <!-- === ШАПКА ДОСКИ === -->
         <header class="board-header">
-            <div class="board-title-section">
-                <div class="board-icon">
-                    <i class="fas fa-tasks"></i>
-                </div>
-                <div class="board-title-wrapper">
-                    <h2
-                        v-if="!editingBoardTitle"
-                        class="board-title"
-                        @dblclick="openEditBoardModal"
-                        title="Двойной клик для редактирования"
-                    >
-                        {{ store.board?.title || initialBoard.title }}
-                        <i class="fa-solid fa-pen-to-square edit-board-icon"></i>
-                    </h2>
-                    <div class="board-subtitle">
-                        {{ store.filteredColumns?.length || 0 }} колонок •
-                        {{ totalTasksCount }} задач
+            <!-- === ДЕСКТОП ВЕРСИЯ === -->
+            <template v-if="!isMobile">
+                <div class="board-title-section">
+                    <div class="board-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="board-title-wrapper">
+                        <h2
+                            v-if="!editingBoardTitle"
+                            class="board-title"
+                            @dblclick="openEditBoardModal"
+                            title="Двойной клик для редактирования"
+                        >
+                            {{ store.board?.title || initialBoard.title }}
+                            <i class="fa-solid fa-pen-to-square edit-board-icon"></i>
+                        </h2>
+                        <div class="board-subtitle">
+                            {{ store.filteredColumns?.length || 0 }} колонок •
+                            {{ totalTasksCount }} задач
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="board-actions">
+                <div class="board-actions">
+                    <button class="action-btn" @click="copyLink" title="Скопировать ссылку">
+                        <i class="fas fa-link"></i>
+                    </button>
+                    <button class="action-btn" @click="openConfigModal" title="Настройки доски">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button class="action-btn" @click="openTokenModal" title="API токены">
+                        <i class="fa-solid fa-key"></i>
+                    </button>
+                    <button class="action-btn" @click="openExportModal" title="Экспорт в Excel">
+                        <i class="fas fa-file-export"></i>
+                    </button>
+                    <div class="action-divider"></div>
+                    <button class="action-btn action-btn-primary" @click="openColumnModal" title="Добавить колонку">
+                        <i class="fas fa-plus"></i>
+                        <span class="btn-label">Колонка</span>
+                    </button>
+                    <button class="action-btn action-btn-danger" @click="showDeleteModal = true" title="Удалить доску">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </template>
 
+            <!-- === МОБИЛЬНАЯ ВЕРСИЯ (свёрнутая) === -->
+            <template v-else>
+                <div class="mobile-header-collapsed">
+                    <div class="mobile-header-left">
+                        <div class="mobile-board-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="mobile-board-info">
+                            <div class="mobile-board-title">
+                                {{ store.board?.title || initialBoard.title }}
+                            </div>
+                            <div class="mobile-board-subtitle">
+                                {{ store.filteredColumns?.length || 0 }} колонок • {{ totalTasksCount }} задач
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        class="mobile-menu-toggle"
+                        :class="{ active: mobileMenuOpen }"
+                        @click.stop="toggleMobileMenu"
+                        aria-label="Меню"
+                    >
+                        <span class="toggle-line"></span>
+                        <span class="toggle-line"></span>
+                        <span class="toggle-line"></span>
+                    </button>
+                </div>
 
-                <button class="action-btn" @click="copyLink" title="Скопировать ссылку">
-                    <i class="fas fa-link"></i>
-                </button>
-                <button class="action-btn" @click="openConfigModal" title="Настройки доски">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-                <button class="action-btn" @click="openTokenModal" title="API токены">
-                    <i class="fa-solid fa-key"></i>
-                </button>
-                <button class="action-btn" @click="openExportModal" title="Экспорт в Excel">
-                    <i class="fas fa-file-export"></i>
-                </button>
-                <div class="action-divider"></div>
-                <button class="action-btn action-btn-primary" @click="openColumnModal" title="Добавить колонку">
-                    <i class="fas fa-plus"></i>
-                    <span class="btn-label">Колонка</span>
-                </button>
-                <button class="action-btn action-btn-danger" @click="showDeleteModal = true" title="Удалить доску">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
+                <!-- Полноэкранное выпадающее меню -->
+                <Transition name="mobile-menu">
+                    <div v-if="mobileMenuOpen" class="mobile-full-menu" @click.stop>
+                        <!-- Шапка меню -->
+                        <div class="mobile-menu-header">
+                            <div class="mobile-menu-header-content">
+                                <div class="mobile-menu-icon">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="mobile-menu-info">
+                                    <div class="mobile-menu-title">
+                                        {{ store.board?.title || initialBoard.title }}
+                                    </div>
+                                    <div class="mobile-menu-subtitle">
+                                        {{ store.filteredColumns?.length || 0 }} колонок • {{ totalTasksCount }} задач
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="mobile-menu-close" @click="mobileMenuOpen = false">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Статистика -->
+                        <div class="mobile-menu-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">{{ store.filteredColumns?.length || 0 }}</div>
+                                <div class="stat-label">Колонок</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ totalTasksCount }}</div>
+                                <div class="stat-label">Задач</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ completedTasksCount }}</div>
+                                <div class="stat-label">Готово</div>
+                            </div>
+                        </div>
+
+                        <!-- Действия -->
+                        <div class="mobile-menu-body">
+                            <div class="menu-section">
+                                <div class="menu-section-title">Действия</div>
+
+                                <button class="mobile-action" @click="handleMobileAction('copyLink')">
+                                    <div class="mobile-action-icon blue">
+                                        <i class="fas fa-link"></i>
+                                    </div>
+                                    <div class="mobile-action-content">
+                                        <div class="mobile-action-title">Скопировать ссылку</div>
+                                        <div class="mobile-action-desc">Поделиться доской</div>
+                                    </div>
+                                </button>
+
+                                <button class="mobile-action" @click="handleMobileAction('openConfigModal')">
+                                    <div class="mobile-action-icon gray">
+                                        <i class="fa-solid fa-gear"></i>
+                                    </div>
+                                    <div class="mobile-action-content">
+                                        <div class="mobile-action-title">Настройки доски</div>
+                                        <div class="mobile-action-desc">Поля, категории, вебхуки</div>
+                                    </div>
+                                </button>
+
+                                <button class="mobile-action" @click="handleMobileAction('openTokenModal')">
+                                    <div class="mobile-action-icon yellow">
+                                        <i class="fa-solid fa-key"></i>
+                                    </div>
+                                    <div class="mobile-action-content">
+                                        <div class="mobile-action-title">API токены</div>
+                                        <div class="mobile-action-desc">Интеграции и доступ</div>
+                                    </div>
+                                </button>
+
+                                <button class="mobile-action" @click="handleMobileAction('openExportModal')">
+                                    <div class="mobile-action-icon green">
+                                        <i class="fas fa-file-export"></i>
+                                    </div>
+                                    <div class="mobile-action-content">
+                                        <div class="mobile-action-title">Экспорт в Excel</div>
+                                        <div class="mobile-action-desc">Скачать данные</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div class="menu-section">
+                                <div class="menu-section-title">Управление</div>
+
+                                <button class="mobile-action primary" @click="handleMobileAction('openColumnModal')">
+                                    <div class="mobile-action-icon primary">
+                                        <i class="fas fa-plus"></i>
+                                    </div>
+                                    <div class="mobile-action-content">
+                                        <div class="mobile-action-title">Добавить колонку</div>
+                                        <div class="mobile-action-desc">Создать новую колонку</div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right mobile-action-arrow"></i>
+                                </button>
+                            </div>
+
+                            <div class="menu-section danger">
+                                <div class="menu-section-title">Опасная зона</div>
+
+                                <button class="mobile-action danger" @click="handleMobileAction('showDeleteModal')">
+                                    <div class="mobile-action-icon danger">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                    <div class="mobile-action-content">
+                                        <div class="mobile-action-title">Удалить доску</div>
+                                        <div class="mobile-action-desc">Безвозвратное удаление</div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right mobile-action-arrow"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Transition>
+
+                <!-- Overlay -->
+                <Transition name="fade">
+                    <div
+                        v-if="mobileMenuOpen"
+                        class="mobile-menu-overlay"
+                        @click="mobileMenuOpen = false"
+                    ></div>
+                </Transition>
+            </template>
         </header>
 
         <!-- Панель фильтра (под шапкой) -->
@@ -274,6 +431,10 @@ export default {
 
     data() {
         return {
+
+            mobileMenuOpen: false,
+            isMobile: false,
+
             selectedColumn: null,
             showNotifications: false,
             activeColumn: 0,
@@ -303,6 +464,12 @@ export default {
     },
 
     computed: {
+        completedTasksCount() {
+            // Подсчёт завершённых задач — адаптируй под свою логику
+            return this.store.board?.columns?.reduce((sum, col) => {
+                return sum + (col.tasks?.filter(t => t.status === 'done').length || 0)
+            }, 0) || 0
+        },
         getActiveColumn() {
             return this.store.columns.find(c => c.id === this.activeColumn)
         },
@@ -323,6 +490,15 @@ export default {
 
         window.addEventListener('select-new-tab', () => {
             this.activeColumn = this.store.columns[0]?.id || null
+        })
+
+        this.checkMobile()
+        window.addEventListener('resize', this.checkMobile)
+        document.addEventListener('click', (e) => {
+            if (this.mobileMenuOpen && !e.target.closest('.mobile-full-menu') && !e.target.closest('.mobile-menu-toggle')) {
+                this.mobileMenuOpen = false
+                document.body.style.overflow = ''
+            }
         })
     },
 
@@ -551,7 +727,53 @@ export default {
                 toast.classList.remove('show')
                 setTimeout(() => toast.remove(), 300)
             }, 2000)
+        },
+        toggleMobileMenu() {
+            this.mobileMenuOpen = !this.mobileMenuOpen
+            // Блокируем скролл body при открытом меню
+            document.body.style.overflow = this.mobileMenuOpen ? 'hidden' : ''
+        },
+
+        handleMobileAction(action) {
+            this.mobileMenuOpen = false
+            document.body.style.overflow = ''
+
+            setTimeout(() => {
+                switch (action) {
+                    case 'copyLink':
+                        this.copyLink()
+                        break
+                    case 'openConfigModal':
+                        this.openConfigModal()
+                        break
+                    case 'openTokenModal':
+                        this.openTokenModal()
+                        break
+                    case 'openExportModal':
+                        this.openExportModal()
+                        break
+                    case 'openColumnModal':
+                        this.openColumnModal()
+                        break
+                    case 'showDeleteModal':
+                        this.showDeleteModal = true
+                        break
+                }
+            }, 200)
+        },
+
+        checkMobile() {
+            this.isMobile = window.innerWidth < 768
+            if (!this.isMobile) {
+                this.mobileMenuOpen = false
+                document.body.style.overflow = ''
+            }
         }
+    },
+
+    beforeUnmount() {
+        window.removeEventListener('resize', this.checkMobile)
+        document.body.style.overflow = ''
     }
 }
 </script>
@@ -846,11 +1068,12 @@ export default {
 
 .mobile-tabs-wrapper {
     position: sticky;
-    top: 73px;
+    top: 80px;
     z-index: 50;
     background: #ffffff;
     border-bottom: 1px solid #e9ecef;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    border-radius: 12px;
 }
 
 .mobile-tabs {
@@ -1121,8 +1344,12 @@ export default {
 
 /* === АДАПТИВ === */
 @media (max-width: 767px) {
+    header {
+        margin-bottom:5px;
+    }
+
     .board-header {
-        padding: 12px 16px;
+        padding: 5px;
     }
 
     .board-icon {
@@ -1173,7 +1400,7 @@ export default {
 /* === ОБЁРТКА ФИЛЬТРА === */
 .filter-wrapper {
     position: relative;
-    margin-bottom: 0;
+    margin-bottom: 5px;
 }
 
 /* Пустая колонка при фильтрации */
@@ -1190,5 +1417,512 @@ export default {
     font-size: 12px;
     color: #adb5bd;
     font-weight: 600;
+}
+
+/* === ШАПКА ДОСКИ === */
+.board-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* === ДЕСКТОП === */
+.board-title-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.board-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.board-title-wrapper {
+    min-width: 0;
+    flex: 1;
+}
+
+.board-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #212529;
+    margin: 0 0 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.edit-board-icon {
+    font-size: 12px;
+    color: #adb5bd;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.board-title:hover .edit-board-icon {
+    opacity: 1;
+}
+
+.board-subtitle {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.board-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px 16px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.action-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.action-btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.action-btn-danger {
+    color: #dc3545;
+}
+
+.action-btn-danger:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.action-divider {
+    width: 1px;
+    height: 24px;
+    background: #dee2e6;
+    margin: 0 4px;
+}
+
+/* === МОБИЛЬНАЯ ШАПКА (свёрнутая) === */
+.mobile-header-collapsed {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.mobile-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.mobile-board-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.mobile-board-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.mobile-board-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.mobile-board-subtitle {
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+/* === ГАМБУРГЕР === */
+.mobile-menu-toggle {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e9ecef;
+    background: #ffffff;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 8px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.mobile-menu-toggle:hover {
+    background: #f8f9fa;
+}
+
+.mobile-menu-toggle.active {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.toggle-line {
+    width: 18px;
+    height: 2px;
+    background: #495057;
+    border-radius: 2px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu-toggle.active .toggle-line {
+    background: white;
+}
+
+.mobile-menu-toggle.active .toggle-line:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.mobile-menu-toggle.active .toggle-line:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active .toggle-line:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
+/* === ПОЛНОЭКРАННОЕ МЕНЮ === */
+.mobile-full-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 85%;
+    max-width: 360px;
+    height: 100vh;
+    background: #ffffff;
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mobile-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    flex-shrink: 0;
+}
+
+.mobile-menu-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.mobile-menu-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    backdrop-filter: blur(10px);
+}
+
+.mobile-menu-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.mobile-menu-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-menu-subtitle {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.mobile-menu-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.mobile-menu-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* === СТАТИСТИКА === */
+.mobile-menu-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #e9ecef;
+    border-bottom: 1px solid #e9ecef;
+    flex-shrink: 0;
+}
+
+.stat-item {
+    background: #ffffff;
+    padding: 12px 8px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #667eea;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* === BODY МЕНЮ === */
+.mobile-menu-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.menu-section {
+    margin-bottom: 16px;
+}
+
+.menu-section:last-child {
+    margin-bottom: 0;
+}
+
+.menu-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 12px 8px;
+}
+
+.menu-section.danger .menu-section-title {
+    color: #dc3545;
+}
+
+/* === ПУНКТЫ МЕНЮ === */
+.mobile-action {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.mobile-action:hover {
+    background: #f8f9fa;
+}
+
+.mobile-action:active {
+    background: #e9ecef;
+    transform: scale(0.98);
+}
+
+.mobile-action-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.mobile-action-icon.blue {
+    background: linear-gradient(135deg, #e7f1ff 0%, #cfe2ff 100%);
+    color: #0d6efd;
+}
+
+.mobile-action-icon.gray {
+    background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
+    color: #495057;
+}
+
+.mobile-action-icon.yellow {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+    color: #997404;
+}
+
+.mobile-action-icon.green {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #059669;
+}
+
+.mobile-action-icon.primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    color: white;
+}
+
+.mobile-action-icon.danger {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #dc3545;
+}
+
+.mobile-action-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.mobile-action-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 2px;
+}
+
+.mobile-action-desc {
+    font-size: 11px;
+    color: #6c757d;
+    line-height: 1.3;
+}
+
+.mobile-action.primary .mobile-action-title {
+    color: #0d6efd;
+}
+
+.mobile-action.danger .mobile-action-title {
+    color: #dc3545;
+}
+
+.mobile-action-arrow {
+    font-size: 11px;
+    color: #adb5bd;
+    flex-shrink: 0;
+}
+
+/* === OVERLAY === */
+.mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+}
+
+/* === АНИМАЦИИ === */
+.mobile-menu-enter-active {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu-leave-active {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
+    transform: translateX(100%);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+/* === СКРОЛЛБАР === */
+.mobile-menu-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mobile-menu-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mobile-menu-body::-webkit-scrollbar-thumb {
+    background: #dee2e6;
+    border-radius: 2px;
 }
 </style>

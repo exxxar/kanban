@@ -66,15 +66,32 @@
 
         <!-- Actions -->
         <div class="order-actions">
-            <button class="action-btn" @click="$emit('view', order.id)">
+            <button
+                class="action-btn"
+                @click="handleView"
+                :disabled="loading"
+            >
                 <i class="fa-solid fa-eye"></i>
                 Подробнее
             </button>
-            <button class="action-btn primary" @click="$emit('process', order.id)">
-                <i class="fa-solid fa-check"></i>
-                Принять
+            <button
+                class="action-btn primary"
+                @click="handleAccept"
+                :disabled="loading || isAccepted"
+            >
+                <span v-if="loading" class="btn-spinner-small"></span>
+                <i v-else :class="isAccepted ? 'fa-solid fa-check' : 'fa-solid fa-play'"></i>
+                {{ isAccepted ? 'Принят ✓' : 'Принять' }}
             </button>
         </div>
+
+        <!-- Сообщение после принятия -->
+        <Transition name="fade">
+            <div v-if="acceptMessage" class="accept-notification" :class="acceptMessage.type">
+                <i :class="acceptMessage.icon"></i>
+                <span>{{ acceptMessage.text }}</span>
+            </div>
+        </Transition>
     </div>
 </template>
 
@@ -87,24 +104,36 @@ export default {
         order: {
             type: Object,
             required: true
+        },
+        taskId: {
+            type: Number,
+            required: true
         }
     },
-    emits: ['view', 'process'],
+    emits: ['view', 'accept', 'accepted'],
+    data() {
+        return {
+            loading: false,
+            isAccepted: false,
+            acceptMessage: null
+        }
+    },
     computed: {
         statusClass() {
-            // Можно определить статус из payload или order.status
+            if (this.isAccepted) return 'processing'
             return 'new'
         },
         statusText() {
+            if (this.isAccepted) return 'В работе'
             return 'Новый'
         },
         paymentIcon() {
             const type = this.order.payment_type
             const icons = {
-                1: 'fa-solid fa-money-bill',      // Наличные
-                2: 'fa-solid fa-credit-card',     // Карта
-                3: 'fa-solid fa-wallet',          // Электронные
-                4: 'fa-solid fa-qrcode'           // СБП
+                1: 'fa-solid fa-money-bill',
+                2: 'fa-solid fa-credit-card',
+                3: 'fa-solid fa-wallet',
+                4: 'fa-solid fa-qrcode'
             }
             return icons[type] || 'fa-solid fa-credit-card'
         },
@@ -120,8 +149,7 @@ export default {
         },
         renderedText() {
             if (!this.order.text) return ''
-            const html = marked(this.order.text)
-            return DOMPurify.sanitize(html)
+            return DOMPurify.sanitize(marked(this.order.text))
         }
     },
     methods: {
@@ -142,11 +170,76 @@ export default {
                 currency: 'RUB',
                 minimumFractionDigits: 0
             }).format(price)
+        },
+
+        /**
+         * Кнопка "Подробнее" — открываем модалку с деталями
+         */
+        handleView() {
+            this.$emit('view', {
+                orderId: this.order.id,
+                taskId: this.taskId,
+                order: this.order
+            })
+        },
+
+        /**
+         * Кнопка "Принять" — комплексная логика
+         */
+        async handleAccept() {
+            if (this.loading || this.isAccepted) return
+
+            this.loading = true
+            this.acceptMessage = null
+
+            try {
+                // === 1. Отправляем запрос на сервер ===
+                const response = await axios.post(`/api/tasks/${this.taskId}/accept`, {
+                    order_id: this.order.id
+                })
+
+                if (response.data.success) {
+                    // === 2. Обновляем UI ===
+                    this.isAccepted = true
+                    this.acceptMessage = {
+                        type: 'success',
+                        icon: 'fa-solid fa-circle-check',
+                        text: '✅ Заказ принят в работу'
+                    }
+
+                    // === 3. Уведомляем родителя ===
+                    this.$emit('accepted', {
+                        taskId: this.taskId,
+                        orderId: this.order.id,
+                        data: response.data
+                    })
+
+                    // === 4. Скрываем уведомление через 5 секунд ===
+                    setTimeout(() => {
+                        this.acceptMessage = null
+                    }, 5000)
+                }
+
+            } catch (error) {
+                console.error('[OrderCard] Accept error:', error)
+
+                this.acceptMessage = {
+                    type: 'error',
+                    icon: 'fa-solid fa-circle-xmark',
+                    text: '❌ ' + (error.response?.data?.message || 'Ошибка принятия заказа')
+                }
+
+                // Скрываем ошибку через 5 секунд
+                setTimeout(() => {
+                    this.acceptMessage = null
+                }, 5000)
+            } finally {
+                this.loading = false
+            }
         }
     }
 }
 </script>
-
 <style scoped>
 .order-card {
     background: #ffffff;
@@ -394,5 +487,68 @@ export default {
     .order-actions {
         flex-direction: column;
     }
+}
+
+.btn-spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Уведомление о принятии */
+.accept-notification {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.accept-notification.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #065f46;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.accept-notification.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #991b1b;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.accept-notification i {
+    font-size: 14px;
+}
+
+/* Анимация */
+.fade-enter-active,
+.fade-leave-active {
+    transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Disabled state */
+.action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.action-btn.primary:disabled {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 </style>

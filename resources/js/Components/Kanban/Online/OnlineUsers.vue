@@ -411,7 +411,7 @@ export default {
     align-items: center;
     justify-content: center;
     z-index: 1050;
-    padding: 20px;
+    padding: 10px;
 }
 
 /* === МОДАЛЬНОЕ ОКНО === */
@@ -901,7 +901,7 @@ export default {
     }
 
     .modal-header-custom {
-        padding: 20px;
+        padding: 10px;
     }
 
     .header-icon {
@@ -934,7 +934,7 @@ export default {
     }
 
     .modal-body-custom {
-        padding: 16px 20px;
+        padding: 16px 10px;
     }
 
     .user-card {
@@ -958,7 +958,7 @@ export default {
     }
 
     .modal-footer-custom {
-        padding: 12px 20px;
+        padding: 12px 10px;
         flex-direction: column;
         gap: 12px;
     }

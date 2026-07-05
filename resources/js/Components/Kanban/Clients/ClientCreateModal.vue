@@ -1093,7 +1093,7 @@ export default {
     align-items: center;
     justify-content: center;
     z-index: 1050;
-    padding: 20px;
+    padding: 10px;
 }
 
 .modal-window {
@@ -1503,14 +1503,14 @@ export default {
 
 @media (max-width: 768px) {
     .modal-window { width: 100%; max-height: 95vh; border-radius: 16px; }
-    .modal-header-custom { padding: 20px; border-radius: 16px 16px 0 0; }
+    .modal-header-custom { padding: 10px; border-radius: 16px 16px 0 0; }
     .header-icon { width: 48px; height: 48px; font-size: 20px; }
     .modal-title-text { font-size: 18px; }
     .modal-body-custom { padding: 20px; }
     .form-grid { grid-template-columns: 1fr; }
-    .modal-tabs { padding: 12px 20px 0; }
+    .modal-tabs { padding: 12px 10px 0; }
     .tab-btn { padding: 8px 16px; font-size: 13px; }
-    .modal-footer-custom { padding: 16px 20px; border-radius: 0 0 16px 16px; }
+    .modal-footer-custom { padding: 16px 10px; border-radius: 0 0 16px 16px; }
     .btn-footer { flex: 1; }
     .add-subtask-row { flex-direction: column; }
     .btn-add-subtask { width: 100%; justify-content: center; }

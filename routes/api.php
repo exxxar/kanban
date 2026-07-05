@@ -187,6 +187,8 @@ Route::prefix('task')->group(function () {
     Route::get('{task}/attachments', [TaskAttachmentController::class, 'index']);
     Route::post('{task}/attachments', [TaskAttachmentController::class, 'store']);
     Route::delete('{task}/attachments', [TaskAttachmentController::class, 'destroy']);
+
+    Route::post('/{taskId}/accept', [TaskController::class, 'accept']);
 });
 
 Route::delete('comments/{comment}', [TaskCommentController::class, 'destroy']);
