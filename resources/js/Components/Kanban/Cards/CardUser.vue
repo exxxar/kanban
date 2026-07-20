@@ -2,6 +2,7 @@
     <div class="my-2">
         <h5 class="mb-3">Информация о клиенте</h5>
 
+        {{card}}
         <ul class="list-group">
             <li class="list-group-item"><strong>Телефон:</strong> {{ card.data.phone }}</li>
             <li class="list-group-item"><strong>Email:</strong> {{ card.data.email }}</li>

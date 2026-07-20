@@ -25,6 +25,17 @@
 
                 <!-- TABS (если редактируем) -->
                 <div v-if="task" class="modal-tabs">
+                    <!-- 🆕 Вкладка "Детали карточки" (появляется только если есть тип) -->
+                    <button
+                        v-if="hasDetailsTab"
+                        class="tab-btn"
+                        :class="{ active: tab === 'details' }"
+                        @click="tab = 'details'"
+                    >
+                        <i class="fa-solid fa-id-card me-2"></i>
+                        Детали карточки
+                    </button>
+
                     <button
                         class="tab-btn"
                         :class="{ active: tab === 'task' }"
@@ -33,6 +44,7 @@
                         <i class="fa-solid fa-list-check me-2"></i>
                         Задача
                     </button>
+
                     <button
                         class="tab-btn"
                         :class="{ active: tab === 'chat' }"
@@ -45,6 +57,18 @@
 
                 <!-- BODY -->
                 <div class="modal-body-custom">
+
+                    <!-- 🆕 TAB: ДЕТАЛИ КАРТОЧКИ (Открывается по умолчанию, если есть тип) -->
+                    <div v-show="tab === 'details'" class="details-tab-content">
+                        <CardUser v-if="task.type === 1" :card="task"/>
+                        <CardOrder v-if="task.type === 2" :card="task"/>
+                        <CardText v-if="task.type === 3" :card="task"/>
+                        <CardFinance v-if="task.type === 4" :card="task"/>
+                        <CardDevelopment v-if="task.type === 5" :card="task"/>
+                        <!-- Добавь CardClient или другие, если нужно -->
+                    </div>
+
+
                     <!-- TAB: ЗАДАЧА -->
                     <form v-show="tab === 'task'" @submit.prevent="submit" class="task-form">
 
@@ -566,6 +590,10 @@ export default {
     data() {
         const store = useKanbanStore()
 
+        const initialTab = (this.task && this.task.type && [1, 2, 3, 4, 5, 6].includes(this.task.type))
+            ? 'details'
+            : 'task'
+
         const local = this.task
             ? {
                 ...this.task,
@@ -585,10 +613,11 @@ export default {
                 custom_data: {}
             }
 
+
         return {
             store,
             isVisible: false,
-            tab: 'task',
+            tab: initialTab,
             collapsedGroups: {}, // Состояние свёрнутости групп
             labelGroups: {
                 'Разработка': [
@@ -617,6 +646,9 @@ export default {
     },
 
     computed: {
+        hasDetailsTab() {
+            return this.task && this.task.type && [1, 2, 3, 4, 5, 6].includes(this.task.type)
+        },
         taskTags() {
             return [...(this.task?.tags || []), ...(this.store?.tags || [])]
         },
@@ -643,10 +675,18 @@ export default {
         this.$nextTick(() => {
             this.isVisible = true
             this.initSortable()
-            this.initCollapsedGroups() // ← Инициализация свёрнутости
+            this.initCollapsedGroups()
         })
     },
-
+    watch: {
+        task(newTask) {
+            if (newTask && newTask.type && [1, 2, 3, 4, 5, 6].includes(newTask.type)) {
+                this.tab = 'details'
+            } else {
+                this.tab = 'task'
+            }
+        }
+    },
 
     methods: {
         initCollapsedGroups() {
@@ -2113,6 +2153,25 @@ export default {
     .summary-tags {
         max-height: 80px;
         overflow-y: auto;
+    }
+}
+
+/* === ВКЛАДКА ДЕТАЛЕЙ КАРТОЧКИ === */
+.details-tab-content {
+    padding: 10px 0;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Немного увеличим ширину модалки, если нужно, чтобы карточки помещались комфортно */
+@media (min-width: 768px) {
+    .modal-window:has(.details-tab-content) {
+        /* Можно раскомментировать, если карточкам нужно больше места по ширине */
+        /* width: 900px; */
     }
 }
 </style>

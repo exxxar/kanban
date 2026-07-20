@@ -10,21 +10,44 @@
         <!-- Footer -->
         <footer class="text-light py-4 mt-auto">
             <div class="container text-center">
-                <!-- Автообновление -->
-                <div class="d-flex justify-content-center my-3">
-                    <div class="form-check form-switch">
-                        <input
-                            v-model="need_request_updates"
-                            type="checkbox"
-                            class="form-check-input"
-                            id="needRequestUpdates"
-                        />
-                        <label class="form-check-label text-white" for="needRequestUpdates">
-                            Запрашивать обновление доски раз в минуту
-                        </label>
-                    </div>
-                </div>
+                <div class="footer-tools-wrapper mb-5">
+                    <button class="btn-tools-toggle" @click="showTools = !showTools">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                        <span>{{ showTools ? 'Скрыть инструменты' : 'Инструменты' }}</span>
+                        <i class="fa-solid" :class="showTools ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </button>
 
+                    <Transition name="fade-slide">
+                        <div v-show="showTools" class="tools-panel">
+                            <!-- Автообновление -->
+                            <div class="tool-item">
+                                <div class="form-check form-switch">
+                                    <input
+                                        v-model="need_request_updates"
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        id="needRequestUpdates"
+                                    />
+                                    <label class="form-check-label text-white" for="needRequestUpdates">
+                                        Автообновление доски (раз в минуту)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Тест Push -->
+                            <div class="tool-item">
+                                <button
+                                    class="btn-test-push-inline"
+                                    @click="testPushNotification"
+                                    title="Отправить тестовое push-уведомление"
+                                >
+                                    <i class="fa-solid fa-bell"></i>
+                                    <span>Тест Push-уведомлений</span>
+                                </button>
+                            </div>
+                        </div>
+                    </Transition>
+                </div>
 
 
                 <!-- Лого -->
@@ -53,15 +76,7 @@
                     </button>
                 </div>
 
-                <!-- 🔥 КНОПКА ТЕСТА УВЕДОМЛЕНИЙ -->
-                <button
-                    class="btn-test-push"
-                    @click="testPushNotification"
-                    title="Отправить тестовое push-уведомление"
-                >
-                    <i class="fa-solid fa-bell"></i>
-                    <span>Тест уведомлений</span>
-                </button>
+
 
                 <!-- Цвет фона -->
                 <div class="mt-3 position-relative d-inline-block">
@@ -337,7 +352,7 @@ export default {
             progressTimer: null,
             refreshTimer: null,
             need_request_updates: false,
-
+            showTools: false,
             // Модалки
             showTemplateModal: false,
             showPwaModal: false,
@@ -1514,5 +1529,101 @@ export default {
 
 .btn-test-push i {
     font-size: 12px;
+}
+
+/* === FOOTER TOOLS (Сворачиваемый блок) === */
+.footer-tools-wrapper {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.btn-tools-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-tools-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.tools-panel {
+    margin-top: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+    backdrop-filter: blur(8px);
+}
+
+.tool-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Стили для кнопки теста внутри панели */
+.btn-test-push-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-test-push-inline:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-test-push-inline:active {
+    transform: translateY(0);
+}
+
+/* Корректировка переключателя для футера */
+.tool-item .form-check-label {
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Анимация для fade-slide (если её ещё нет в твоих стилях) */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
 }
 </style>
