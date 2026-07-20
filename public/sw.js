@@ -335,7 +335,6 @@ self.addEventListener('message', (event) => {
         return // Прерываем выполнение, чтобы не идти дальше
     }
 
-    // ... твой существующий код для SKIP_WAITING и CLEAR_CACHE ...
     if (event.data === 'SKIP_WAITING') {
         self.skipWaiting()
     }

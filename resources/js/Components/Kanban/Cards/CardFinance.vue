@@ -43,7 +43,7 @@
                 <i class="fa-regular fa-clock me-1"></i>
                 {{ formattedDate }}
             </div>
-        </
+        </div>
 
         <!-- FOOTER: Действия и отладка -->
         <div class="finance-footer">
