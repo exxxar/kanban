@@ -60,12 +60,14 @@
 
                     <!-- 🆕 TAB: ДЕТАЛИ КАРТОЧКИ (Открывается по умолчанию, если есть тип) -->
                     <div v-show="tab === 'details'" class="details-tab-content">
-                        <CardUser v-if="task.type === 1" :card="task"/>
-                        <CardOrder v-if="task.type === 2" :card="task"/>
-                        <CardText v-if="task.type === 3" :card="task"/>
-                        <CardFinance v-if="task.type === 4" :card="task"/>
-                        <CardDevelopment v-if="task.type === 5" :card="task"/>
-                        <!-- Добавь CardClient или другие, если нужно -->
+                        <template v-if="task">
+                            <CardUser v-if="task.type === 1" :card="task"/>
+                            <CardOrder v-if="task.type === 2" :card="task"/>
+                            <CardText v-if="task.type === 3" :card="task"/>
+                            <CardFinance v-if="task.type === 4" :card="task"/>
+                            <CardDevelopment v-if="task.type === 5" :card="task"/>
+                        </template>
+
                     </div>
 
 
@@ -646,6 +648,7 @@ export default {
     },
 
     computed: {
+
         hasDetailsTab() {
             return this.task && this.task.type && [1, 2, 3, 4, 5, 6].includes(this.task.type)
         },
@@ -2181,6 +2184,7 @@ export default {
     gap: 8px;
     padding: 16px 28px 0;
     background: #f8f9fa;
+    min-height: 60px;
     border-bottom: 1px solid #e9ecef;
     /* 🆕 Добавляем горизонтальный скролл */
     overflow-x: auto;
@@ -2226,6 +2230,7 @@ export default {
     .modal-tabs {
         padding: 12px 16px 0;
         gap: 6px;
+
     }
 
     .tab-btn {
