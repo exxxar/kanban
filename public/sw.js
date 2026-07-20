@@ -228,59 +228,62 @@ async function trimCache(cacheName, maxItems) {
 self.addEventListener('push', (event) => {
     console.log("[SW] Push received");
 
+    // Дефолтные значения
     let data = {
         title: 'KanbanCRM',
         body: 'Новое уведомление',
         icon: '/icons/icon-192x192.png',
         badge: '/icons/icon-192x192.png',
-        url: '/board/#/menu'
+        type: 'PUSH', // По умолчанию считаем, что это обычный пуш
+        notificationType: 'info',
+        url: '/',
+        actions: []
     };
 
     if (event.data) {
         try {
-            const jsonData = event.data.json();
-            data = { ...data, ...jsonData };
+            const json = event.data.json();
+
+            // 🎯 УНИВЕРСАЛЬНО ИЗВЛЕКАЕМ ДАННЫЕ
+            // Laravel webpush кладёт кастомные поля в json.data
+            const customData = json.data || {};
+
+            data = {
+                title: json.title || data.title,
+                body: json.body || data.body,
+                icon: json.icon || data.icon,
+                badge: json.badge || json.icon || data.badge,
+                type: customData.type || json.type || 'PUSH', // ← type из data или из корня
+                notificationType: customData.notificationType || data.notificationType,
+                url: customData.url || '/',
+                actions: json.actions || [],
+                raw: json,
+            };
         } catch (e) {
             data.body = event.data.text();
         }
     }
 
-    // 🔥 КРИТИЧЕСКИ ВАЖНО: Преобразуем относительные пути иконок в абсолютные
-    // Иначе на Android/iOS иконка не отобразится!
-    const origin = self.location.origin;
-    const iconUrl = data.icon.startsWith('http') ? data.icon : new URL(data.icon, origin).href;
-    const badgeUrl = (data.badge || data.icon).startsWith('http') ? (data.badge || data.icon) : new URL(data.badge || data.icon, origin).href;
+    // Показываем уведомление для любых осмысленных типов
+    if (['TEST_PUSH', 'PUSH', 'BOARD_UPDATED', 'NEW_MESSAGE'].includes(data.type)) {
+        const origin = self.location.origin;
+        const iconUrl = data.icon?.startsWith('http')
+            ? data.icon
+            : new URL(data.icon, origin).href;
 
-    const options = {
-        body: data.body,
-        icon: iconUrl,
-        badge: badgeUrl,
-        vibrate: [100, 50, 100],
-        data: {
-            url: data.url || '/board/#/menu'
-        },
-        actions: data.actions || [],
-        // requireInteraction: true, // Раскомментируй, если хочешь, чтобы уведомление не исчезало само на десктопе
-        tag: data.tag || 'kanban-notification', // Группирует уведомления с одинаковым тегом
-        renotify: true // Перезванивает/вибрирует снова, если пришло уведомление с тем же тегом
-    };
+        const options = {
+            body: data.body,
+            icon: iconUrl,
+            badge: new URL(data.badge, origin).href,
+            vibrate: [100, 50, 100],
+            data: { url: data.url, type: data.type, notificationType: data.notificationType },
+            actions: data.actions,
+            tag: data.notificationType,
+            renotify: true
+        };
 
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
-
-    // Отправляем сообщение в активную вкладку (если она открыта)
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-        clients.forEach(client => {
-            client.postMessage({
-                type: 'PUSH_RECEIVED',
-                title: data.title,
-                body: data.body,
-                url: data.url,
-                notificationType: data.notificationType || 'success'
-            });
-        });
-    });
+        event.waitUntil(self.registration.showNotification(data.title, options));
+    }
 });
 
 // Клик по уведомлению или действию
@@ -317,22 +320,19 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('message', (event) => {
 
     if (event.data?.type === 'TEST_PUSH') {
-        const data = event.data
-        const origin = self.location.origin
-
-        // Гарантируем абсолютный путь для иконки (иначе на телефоне она не отобразится)
+        const data = event.data;
+        const origin = self.location.origin;
         const iconUrl = data.icon?.startsWith('http')
             ? data.icon
-            : new URL(data.icon || '/icons/icon-192x192.png', origin).href
+            : new URL(data.icon || '/icons/icon-192x192.png', origin).href;
 
         self.registration.showNotification(data.title, {
             body: data.body,
             icon: iconUrl,
             badge: iconUrl,
             vibrate: [100, 50, 100],
-            data: { url: data.url || '/' }
-        })
-        return // Прерываем выполнение, чтобы не идти дальше
+            data: { url: data.url || '/', type: 'TEST_PUSH' }
+        });
     }
 
     if (event.data === 'SKIP_WAITING') {

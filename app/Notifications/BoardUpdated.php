@@ -22,7 +22,15 @@ class BoardUpdated extends Notification
         return (new WebPushMessage)
             ->title('Изменения на доске')
             ->body('На доске были обновлены задачи')
-            ->data(['url' => url('/boards/'.$this->board->uuid)])
-            ->action('Открыть доску', 'open_board');
+            ->icon('/icons/icon-192x192.png')
+            ->badge('/icons/icon-192x192.png')
+            ->data([
+                'url' => url('/boards/' . $this->board->uuid),
+                'type' => 'PUSH',
+                'notificationType' => 'board_updated',
+                'board_uuid' => $this->board->uuid,
+            ])
+            ->action('Открыть доску', 'open_board')
+            ->vibrate([100, 50, 100]);
     }
 }

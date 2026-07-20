@@ -429,7 +429,7 @@ export default {
         }
 
         navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data?.type === 'request-update') {
+            if (event.data?.type === 'request-update'||event.data?.type === 'PUSH') {
                 this.updateTimer()
             }
         })
