@@ -917,6 +917,7 @@ export default {
     .stats-section {
         padding: 16px 20px;
         gap: 8px;
+        overflow-x: auto;
     }
 
     .stat-item {

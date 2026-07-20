@@ -226,59 +226,86 @@ async function trimCache(cacheName, maxItems) {
 // PUSH-УВЕДОМЛЕНИЯ
 // ==========================================
 self.addEventListener('push', (event) => {
-    console.log("[SW] push");
-    let data = { title: 'Уведомление', body: 'Новое сообщение', icon: '/icons/icon-192x192.png' };
+    console.log("[SW] Push received");
+
+    let data = {
+        title: 'KanbanCRM',
+        body: 'Новое уведомление',
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        url: '/board/#/menu'
+    };
 
     if (event.data) {
         try {
-            data = { ...data, ...event.data.json() };
+            const jsonData = event.data.json();
+            data = { ...data, ...jsonData };
         } catch (e) {
             data.body = event.data.text();
         }
     }
 
+    // 🔥 КРИТИЧЕСКИ ВАЖНО: Преобразуем относительные пути иконок в абсолютные
+    // Иначе на Android/iOS иконка не отобразится!
+    const origin = self.location.origin;
+    const iconUrl = data.icon.startsWith('http') ? data.icon : new URL(data.icon, origin).href;
+    const badgeUrl = (data.badge || data.icon).startsWith('http') ? (data.badge || data.icon) : new URL(data.badge || data.icon, origin).href;
+
     const options = {
         body: data.body,
-        icon: data.icon,
-        badge: data.badge || data.icon,
+        icon: iconUrl,
+        badge: badgeUrl,
         vibrate: [100, 50, 100],
-        data: { url: data.url || '/board/#/menu' },
-        actions: data.actions || []
+        data: {
+            url: data.url || '/board/#/menu'
+        },
+        actions: data.actions || [],
+        // requireInteraction: true, // Раскомментируй, если хочешь, чтобы уведомление не исчезало само на десктопе
+        tag: data.tag || 'kanban-notification', // Группирует уведомления с одинаковым тегом
+        renotify: true // Перезванивает/вибрирует снова, если пришло уведомление с тем же тегом
     };
 
     event.waitUntil(
         self.registration.showNotification(data.title, options)
     );
 
-    console.log('[SW] Отправляем в BroadcastChannel...');
-    const channel = new BroadcastChannel('push-notifications');
-    channel.postMessage({
-        type: 'PUSH_RECEIVED',
-        title: data.title || 'Заголовок',
-        body: data.body || '',
-        url: data.url || '/',
-        notificationType: data.notificationType || 'success'
+    // Отправляем сообщение в активную вкладку (если она открыта)
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        clients.forEach(client => {
+            client.postMessage({
+                type: 'PUSH_RECEIVED',
+                title: data.title,
+                body: data.body,
+                url: data.url,
+                notificationType: data.notificationType || 'success'
+            });
+        });
     });
-    console.log('[SW] Сообщение отправлено');
-    channel.close();
 });
 
-// Клик по уведомлению
+// Клик по уведомлению или действию
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
-    const urlToOpen = event.notification.data?.url || '/board/#/menu';
+    // Если нажали на кнопку действия (если они есть)
+    const actionUrl = event.action ? event.notification.data.actions?.find(a => a.action === event.action)?.url : null;
+    const urlToOpen = actionUrl || event.notification.data?.url || '/board/#/menu';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((windowClients) => {
+                // Ищем уже открытую вкладку с нашим приложением
                 for (const client of windowClients) {
-                    if (client.url.includes('/board') && 'focus' in client) {
-                        client.postMessage({ type: 'NAVIGATE', url: urlToOpen });
-                        client.postMessage({ type: 'NOTIFICATION_CLICKED', url: urlToOpen });
+                    if (client.url.includes(self.location.origin) && 'focus' in client) {
+                        // Отправляем сообщение во вкладку, чтобы она сама сделала роутинг
+                        client.postMessage({
+                            type: 'NAVIGATE',
+                            url: urlToOpen
+                        });
                         return client.focus();
                     }
                 }
+                // Если вкладка не открыта — открываем новую
                 return clients.openWindow(urlToOpen);
             })
     );
@@ -288,12 +315,33 @@ self.addEventListener('notificationclick', (event) => {
 // Сообщения от клиента
 // ==========================================
 self.addEventListener('message', (event) => {
+
+    if (event.data?.type === 'TEST_PUSH') {
+        const data = event.data
+        const origin = self.location.origin
+
+        // Гарантируем абсолютный путь для иконки (иначе на телефоне она не отобразится)
+        const iconUrl = data.icon?.startsWith('http')
+            ? data.icon
+            : new URL(data.icon || '/icons/icon-192x192.png', origin).href
+
+        self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: iconUrl,
+            badge: iconUrl,
+            vibrate: [100, 50, 100],
+            data: { url: data.url || '/' }
+        })
+        return // Прерываем выполнение, чтобы не идти дальше
+    }
+
+    // ... твой существующий код для SKIP_WAITING и CLEAR_CACHE ...
     if (event.data === 'SKIP_WAITING') {
-        self.skipWaiting();
+        self.skipWaiting()
     }
     if (event.data === 'CLEAR_CACHE') {
         caches.keys().then((names) => {
-            names.forEach((name) => caches.delete(name));
-        });
+            names.forEach((name) => caches.delete(name))
+        })
     }
-});
+})

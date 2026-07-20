@@ -25,6 +25,8 @@
                     </div>
                 </div>
 
+
+
                 <!-- Лого -->
                 <h2 class="kanbancrm-logo mb-3">
                     <i class="fa-solid fa-layer-group me-2"></i>
@@ -50,6 +52,16 @@
                         <span>Установить приложение</span>
                     </button>
                 </div>
+
+                <!-- 🔥 КНОПКА ТЕСТА УВЕДОМЛЕНИЙ -->
+                <button
+                    class="btn-test-push"
+                    @click="testPushNotification"
+                    title="Отправить тестовое push-уведомление"
+                >
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Тест уведомлений</span>
+                </button>
 
                 <!-- Цвет фона -->
                 <div class="mt-3 position-relative d-inline-block">
@@ -476,7 +488,42 @@ export default {
                 }, 5000)
             })
         },
+        // === ТЕСТ PUSH-УВЕДОМЛЕНИЙ ===
+        async testPushNotification() {
+            if (!('serviceWorker' in navigator)) {
+                alert('Service Worker не поддерживается в этом браузере')
+                return
+            }
 
+            try {
+                // 1. Ждём готовности Service Worker
+                const registration = await navigator.serviceWorker.ready
+
+                // 2. Проверяем или запрашиваем разрешение
+                if (Notification.permission !== 'granted') {
+                    const permission = await Notification.requestPermission()
+                    if (permission !== 'granted') {
+                        alert('Пожалуйста, разрешите уведомления в настройках браузера, чтобы протестировать эту функцию.')
+                        return
+                    }
+                }
+
+                // 3. Отправляем сообщение напрямую в Service Worker
+                // ⚠️ ВАЖНО: Убедись, что путь к иконке верный для твоего проекта!
+                registration.active.postMessage({
+                    type: 'TEST_PUSH',
+                    title: '🔔 KanbanCRM Тест',
+                    body: 'Если ты видишь это в шторке, значит push-уведомления работают идеально! 🚀',
+                    icon: '/icons/icon-192x192.png', // Замени на реальный путь к твоей иконке, если он другой
+                    url: '/board/#/menu'
+                })
+
+                console.log('✅ Тестовое уведомление отправлено в Service Worker')
+            } catch (error) {
+                console.error('❌ Ошибка при тестировании уведомлений:', error)
+                alert('Не удалось отправить тестовое уведомление. Проверь консоль.')
+            }
+        },
         installPWA() {
             if (window.deferredPWAInstall) {
                 window.deferredPWAInstall.prompt()
@@ -511,46 +558,58 @@ export default {
 
         // === PUSH ===
         async initPush() {
-            // === ПРОВЕРКА ПОДДЕРЖКИ ===
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 console.warn('Push notifications not supported')
                 return
             }
 
             try {
-                // === РЕГИСТРАЦИЯ SW ===
+                // 1. Регистрируем SW
                 const registration = await navigator.serviceWorker.register('/sw.js')
-
-                // === ЖДЁМ ПОЛНОЙ АКТИВАЦИИ ===
-                // Это ключевое исправление — без ready() subscribe падает
                 await navigator.serviceWorker.ready
-
                 console.log('Service Worker ready:', registration)
 
-                // === ЗАПРОС РАЗРЕШЕНИЯ ===
-                const permission = await Notification.requestPermission()
-                if (permission !== 'granted') {
-                    console.warn('User denied notifications')
-                    return
+                // 2. Проверяем, есть ли уже активная подписка
+                let subscription = await registration.pushManager.getSubscription()
+
+                // 3. Если подписки нет, запрашиваем разрешение и создаём новую
+                if (!subscription) {
+                    const permission = await Notification.requestPermission()
+                    if (permission !== 'granted') {
+                        console.warn('User denied notifications')
+                        return
+                    }
+
+                    // 🔥 КРИТИЧЕСКИ ВАЖНО: Конвертируем Base64 VAPID ключ в Uint8Array
+                    const vapidKey = this.vapidPublicKey.replace(/-/g, '+').replace(/_/g, '/')
+                    const padLength = 4 - (vapidKey.length % 4)
+                    const paddedKey = vapidKey + '='.repeat(padLength)
+                    const binaryString = atob(paddedKey)
+                    const uint8Array = new Uint8Array(binaryString.length)
+                    for (let i = 0; i < binaryString.length; i++) {
+                        uint8Array[i] = binaryString.charCodeAt(i)
+                    }
+
+                    // Создаём подписку
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: uint8Array
+                    })
+
+                    console.log('New push subscription created')
+                } else {
+                    console.log('Push subscription already exists')
                 }
 
-                // === ПОДПИСКА НА PUSH ===
-                const subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: this.vapidPublicKey,
-                })
-
-                // === ОТПРАВКА НА СЕРВЕР ===
+                // 4. Отправляем подписку на сервер (даже если она старая, сервер обновит её)
                 await axios.post('/api/push/subscribe', {
                     subscription: subscription.toJSON(),
                     board_uuid: this.board.uuid
                 })
 
-                console.log('Push subscription successful')
+                console.log('Push subscription synced with server')
             } catch (error) {
-                // === ВАЖНО: не падаем, если push не работает ===
                 console.error('Push initialization failed:', error)
-                // Можно показать пользователю, но не блокировать работу
             }
         }
     }
@@ -1423,5 +1482,37 @@ export default {
 .gen-info-clients {
     color: #7c3aed;
     font-weight: 600;
+}
+
+/* === КНОПКА ТЕСТА УВЕДОМЛЕНИЙ === */
+.btn-test-push {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-test-push:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-test-push:active {
+    transform: translateY(0);
+}
+
+.btn-test-push i {
+    font-size: 12px;
 }
 </style>
