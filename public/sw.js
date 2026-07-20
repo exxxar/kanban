@@ -240,6 +240,8 @@ self.addEventListener('push', (event) => {
         actions: []
     };
 
+    console.log(event.data);
+
     if (event.data) {
         try {
             const json = event.data.json();
@@ -253,7 +255,7 @@ self.addEventListener('push', (event) => {
                 body: json.body || data.body,
                 icon: json.icon || data.icon,
                 badge: json.badge || json.icon || data.badge,
-                type: customData.type || json.type || 'PUSH', // ← type из data или из корня
+                type: customData.type || json.type || 'BOARD_UPDATED', // ← type из data или из корня
                 notificationType: customData.notificationType || data.notificationType,
                 url: customData.url || '/',
                 actions: json.actions || [],

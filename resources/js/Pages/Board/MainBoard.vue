@@ -429,6 +429,7 @@ export default {
         }
 
         navigator.serviceWorker.addEventListener('message', (event) => {
+            console.log("navigator.serviceWorker.addEventListener message", event)
             if (event.data?.type === 'request-update'||event.data?.type === 'BOARD_UPDATED') {
                 this.updateTimer()
             }
