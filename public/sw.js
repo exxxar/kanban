@@ -234,7 +234,7 @@ self.addEventListener('push', (event) => {
         body: 'Новое уведомление',
         icon: '/icons/icon-192x192.png',
         badge: '/icons/icon-192x192.png',
-        type: 'PUSH', // По умолчанию считаем, что это обычный пуш
+        type: 'BOARD_UPDATED', // По умолчанию считаем, что это обычный пуш
         notificationType: 'info',
         url: '/',
         actions: []
