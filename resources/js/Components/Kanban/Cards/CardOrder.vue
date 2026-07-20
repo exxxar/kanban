@@ -16,9 +16,11 @@
             <!-- Клиент -->
             <div class="info-block">
                 <div class="info-label"><i class="fa-solid fa-user me-1"></i> Клиент</div>
-                <div class="info-value">{{ customerName }}</div>
+                <div class="info-value" :class="{ 'text-muted fst-italic': !customerName }">
+                    {{ getVal(customerName) }}
+                </div>
                 <div class="info-value text-muted small">
-                    <i class="fa-solid fa-phone me-1"></i> {{ customerPhone || 'Не указан' }}
+                    <i class="fa-solid fa-phone me-1"></i> {{ getVal(customerPhone) }}
                 </div>
             </div>
 
@@ -26,23 +28,25 @@
             <div class="info-block">
                 <div class="info-label"><i class="fa-solid fa-truck me-1"></i> Тип получения</div>
                 <div class="info-value">
-                    <span :class="isPickup ? 'badge bg-warning text-dark' : 'badge bg-info'">
-                        {{ isPickup ? 'Самовывоз' : 'Доставка' }}
-                    </span>
+        <span :class="isPickup ? 'badge bg-warning text-dark' : 'badge bg-info'">
+            {{ isPickup ? 'Самовывоз' : 'Доставка' }}
+        </span>
                 </div>
                 <div v-if="!isPickup" class="info-value text-muted small mt-1">
                     <i class="fa-solid fa-location-dot me-1"></i>
-                    {{ deliveryNote || 'Адрес не указан' }}
+                    <span :class="{ 'fst-italic': !deliveryNote }">{{ getVal(deliveryNote) }}</span>
                     <span v-if="deliveryPrice > 0" class="ms-2 text-primary">
-                        (Доставка: {{ formatPrice(deliveryPrice) }})
-                    </span>
+            (Доставка: {{ formatPrice(deliveryPrice) }})
+        </span>
                 </div>
             </div>
 
             <!-- Оплата -->
             <div class="info-block">
                 <div class="info-label"><i class="fa-solid fa-credit-card me-1"></i> Оплата</div>
-                <div class="info-value">{{ paymentLabel }}</div>
+                <div class="info-value" :class="{ 'text-muted fst-italic': paymentLabel === 'Неизвестно' }">
+                    {{ getVal(paymentLabel, 'Неизвестно') }}
+                </div>
             </div>
 
             <!-- Состав заказа -->
@@ -176,8 +180,15 @@ export default {
         }
     },
     methods: {
+
+        getVal(val, fallback = 'Не заполнено') {
+            if (val === null || val === undefined || val === '') {
+                return fallback;
+            }
+            return val;
+        },
         formatPrice(price) {
-            if (!price && price !== 0) return '0 ₽';
+            if (price === null || price === undefined || price === '') return '0 ₽';
             return new Intl.NumberFormat('ru-RU', {
                 style: 'currency',
                 currency: 'RUB',
@@ -186,7 +197,6 @@ export default {
         },
         copyJson() {
             navigator.clipboard.writeText(this.formattedJson).then(() => {
-                // Можно добавить toast-уведомление, если есть глобальная система
                 const btn = document.querySelector('.btn-copy');
                 const originalHTML = btn.innerHTML;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i>';

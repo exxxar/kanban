@@ -18,6 +18,36 @@
 
         <!-- BODY: Детали -->
         <div class="finance-body">
+
+
+            <!-- BODY: Детали -->
+            <div class="finance-body">
+                <!-- Баланс после операции -->
+                <div class="info-block balance-block">
+                    <div class="info-label">
+                        <i class="fa-solid fa-wallet me-1"></i> Баланс после операции
+                    </div>
+                    <div class="info-value highlight">
+                        {{ getVal(formattedBalance, '0,00') }} {{ currency }}
+                    </div>
+                </div>
+
+                <!-- Комментарий -->
+                <div class="info-block">
+                    <div class="info-label">
+                        <i class="fa-solid fa-comment-dots me-1"></i> Комментарий
+                    </div>
+                    <div class="info-value comment-text" :class="{ 'text-muted fst-italic': !comment }">
+                        {{ getVal(comment) }}
+                    </div>
+                </div>
+
+                <!-- Дата и время -->
+                <div class="info-block date-block">
+                    <i class="fa-regular fa-clock me-1"></i>
+                    <span :class="{ 'fst-italic': !formattedDate }">{{ getVal(formattedDate) }}</span>
+                </div>
+            </div>
             <!-- Баланс после операции -->
             <div class="info-block balance-block">
                 <div class="info-label">
@@ -143,6 +173,12 @@ export default {
         }
     },
     methods: {
+        getVal(val, fallback = 'Не заполнено') {
+            if (val === null || val === undefined || val === '') {
+                return fallback;
+            }
+            return val;
+        },
         copyJson() {
             navigator.clipboard.writeText(this.formattedJson).then(() => {
                 const btn = document.querySelector('.btn-copy');

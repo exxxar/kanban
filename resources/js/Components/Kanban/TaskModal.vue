@@ -2174,4 +2174,63 @@ export default {
         /* width: 900px; */
     }
 }
+
+/* === TABS === */
+.modal-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 28px 0;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    /* 🆕 Добавляем горизонтальный скролл */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+    scrollbar-width: none; /* Скрываем скроллбар в Firefox */
+}
+
+/* Скрываем скроллбар в Chrome/Safari */
+.modal-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    border-radius: 10px 10px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    /* 🆕 Запрещаем сжатие и перенос текста */
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.tab-btn.active {
+    background: #ffffff;
+    color: #0d6efd;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 768px) {
+    .modal-tabs {
+        padding: 12px 16px 0;
+        gap: 6px;
+    }
+
+    .tab-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+}
 </style>
